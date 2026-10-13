@@ -1,0 +1,12 @@
+[project]
+name = "vikunja-mcp"
+version = "0.1.0"
+description = "MCP server that exposes a self-hosted Vikunja instance as tools for MCP clients"
+readme = "README.md"
+authors = [{ name = "Barnabas Pinter" }]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
