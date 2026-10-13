@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _API_SUFFIX = "/api/v1"
 _LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
+
 class Settings(BaseSettings):
     """Configuration for the server, read from environment variables or a local .env file."""
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
         if not value.startswith(("http://", "https://")):
             raise ValueError("must start with http:// or https://")
         return value
-    
+
     @field_validator("log_level")
     @classmethod
     def _normalise_log_level(cls, value: str) -> str:
@@ -48,5 +49,3 @@ def get_settings() -> Settings:
     """Load settings once and reuse them."""
     return Settings()
 
-
-#todo: loglevel
