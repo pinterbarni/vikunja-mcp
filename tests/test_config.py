@@ -19,3 +19,24 @@ def test_token_is_required(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None, vikunja_url="https://vikunja.example.com")
+
+
+@pytest.mark.parametrize(
+    "raw_url",
+    [
+        "https://vikunja.example.com",
+        "https://vikunja.example.com/",
+        "https://vikunja.example.com/api/v1",
+        "https://vikunja.example.com/api/v1/",
+    ],
+)
+def test_url_is_normalised(raw_url: str) -> None:
+    settings = Settings(_env_file=None, vikunja_url=raw_url, vikunja_api_token="t")
+
+    assert settings.vikunja_url == "https://vikunja.example.com"
+    assert settings.vikunja_api_base_url == "https://vikunja.example.com/api/v1"
+
+
+def test_url_without_scheme_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, vikunja_url="vikunja.example.com", vikunja_api_token="t")
