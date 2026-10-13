@@ -26,6 +26,18 @@ Check that the package imports and print its version:
 uv run python -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
 ```
 
+Start the server (needs a `.env`, see [Configuration](#configuration)). If port in use, add `--port 8001`:
+
+```bash
+uv run uvicorn vikunja_mcp.main:create_app --factory --reload
+```
+
+Check if it runs:
+
+```bash
+curl localhost:8000/health
+```
+
 ## Configuration
 
 Settings are environment variables, or entries in a local `.env` file.
