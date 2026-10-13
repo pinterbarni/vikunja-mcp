@@ -15,6 +15,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "codespell>=2.4.3",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]
@@ -28,3 +29,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC", "SIM"]
+
+[tool.codespell]
+skip = "uv.lock,.venv,.git"
+ignore-words-list = "pinter, codespell"

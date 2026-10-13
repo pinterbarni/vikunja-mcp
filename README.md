@@ -30,14 +30,19 @@ uv run python -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
 
 ### Before you commit ✨
 
-Run these, they should all pass:
+Run all checks (tests, lint, format check, spelling):
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run ruff format .
-npx cspell "**/*.{py,md,toml,json}"
+make check
 ```
+
+Auto-fix lint and formatting issues first if needed:
+
+```bash
+make fix
+```
+
+Single checks: `make test`, `make lint`, `make format`, `make spell`.
 
 ---
 
