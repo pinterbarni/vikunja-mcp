@@ -88,19 +88,12 @@ Check formatting without changing any file (this is what CI will run):
 uv run ruff format --check .
 ```
 
-Check spelling in code and docs with [cspell](https://cspell.org/):
-
-```bash
-npx cspell "**/*.{py,md,toml,json}"
-```
-
 ## Project layout
 
 ```bash
 src/vikunja_mcp/   the package
 tests/             tests, run with pytest
 pyproject.toml     project metadata and tool settings
-cspell.json        spell check settings and project words
 ```
 
 ## Docs
@@ -114,7 +107,6 @@ cspell.json        spell check settings and project words
 - [uv](https://docs.astral.sh/uv/): package and environment manager
 - [pytest](https://docs.pytest.org/): test runner
 - [Ruff](https://docs.astral.sh/ruff/): linter and formatter
-- [cspell](https://cspell.org/): spell checker
 - [pydantic](https://pydantic.dev/docs/validation/dev/get-started/): data validation library
 
 ### Vikunja
