@@ -26,6 +26,18 @@ Check that the package imports and print its version:
 uv run python -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
 ```
 
+## Configuration
+
+Settings are environment variables, or entries in a local `.env` file.
+
+| Variable                  | Required | Default | Purpose                                                                       |
+| ------------------------- | -------- | ------- | ----------------------------------------------------------------------------- |
+| `VIKUNJA_URL`             | yes      | none    | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted. |
+| `VIKUNJA_API_TOKEN`       | yes      | none    | API token used for every Vikunja request. Never logged.                       |
+| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`    | Seconds to wait for Vikunja before giving up. Must be greater than zero.      |
+
+The server does not start if a required variable is missing or invalid.
+
 ## Development
 
 ### Before you commit ✨
