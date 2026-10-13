@@ -26,7 +26,7 @@ Check that the package imports and print its version:
 uv run python -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
 ```
 
-Start the server (needs a `.env`, see [Configuration](#configuration)). If port in use, add `--port 8001`:
+Start the server (needs a `.env`, see [Configuration](#configuration)). If port in use, add flag `--port 8001`:
 
 ```bash
 uv run uvicorn vikunja_mcp.main:create_app --factory --reload
@@ -47,6 +47,7 @@ Settings are environment variables, or entries in a local `.env` file.
 | `VIKUNJA_URL`             | yes      | none    | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted. |
 | `VIKUNJA_API_TOKEN`       | yes      | none    | API token used for every Vikunja request. Never logged.                       |
 | `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`    | Seconds to wait for Vikunja before giving up. Must be greater than zero.      |
+| `LOG_LEVEL`               | no       | `INFO`  | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                       |
 
 The server does not start if a required variable is missing or invalid.
 

@@ -6,7 +6,7 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _API_SUFFIX = "/api/v1"
-
+_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 class Settings(BaseSettings):
     """Configuration for the server, read from environment variables or a local .env file."""
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     vikunja_url: str
     vikunja_api_token: SecretStr
     vikunja_timeout_seconds: float = Field(default=10.0, gt=0)
+    log_level: str = "INFO"
 
     @field_validator("vikunja_url")
     @classmethod
@@ -26,6 +27,15 @@ class Settings(BaseSettings):
             value = value.removesuffix(_API_SUFFIX)
         if not value.startswith(("http://", "https://")):
             raise ValueError("must start with http:// or https://")
+        return value
+    
+    @field_validator("log_level")
+    @classmethod
+    def _normalise_log_level(cls, value: str) -> str:
+        """Accept any casing of value, reject names that are not real log levels defined by us."""
+        value = value.strip().upper()
+        if value not in _LOG_LEVELS:
+            raise ValueError(f"must be one of {sorted(_LOG_LEVELS)}")
         return value
 
     @property

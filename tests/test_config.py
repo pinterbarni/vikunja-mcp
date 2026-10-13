@@ -74,3 +74,33 @@ def test_timeout_must_be_positive(bad_timeout: float) -> None:
             vikunja_api_token="t",
             vikunja_timeout_seconds=bad_timeout,
         )
+
+def test_log_level_defaults_to_info() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.example.com",
+        vikunja_api_token="t",
+    )
+
+    assert settings.log_level == "INFO"
+
+
+def test_log_level_is_case_insensitive() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.example.com",
+        vikunja_api_token="t",
+        log_level="debug",
+    )
+
+    assert settings.log_level == "DEBUG"
+
+
+def test_unknown_log_level_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            vikunja_url="https://vikunja.example.com",
+            vikunja_api_token="t",
+            log_level="loud",
+        )
