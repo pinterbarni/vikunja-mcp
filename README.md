@@ -28,6 +28,19 @@ uv run python -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
 
 ## Development
 
+### Before you commit ✨
+
+Run these, they should all pass:
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run ruff format .
+npx cspell "**/*.{py,md,toml,json}"
+```
+
+---
+
 Run the tests:
 
 ```bash
@@ -85,6 +98,7 @@ cspell.json        spell check settings and project words
 - [pytest](https://docs.pytest.org/): test runner
 - [Ruff](https://docs.astral.sh/ruff/): linter and formatter
 - [cspell](https://cspell.org/): spell checker
+- [pydantic](https://pydantic.dev/docs/validation/dev/get-started/): data validation library
 
 ### Vikunja
 

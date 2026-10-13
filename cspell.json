@@ -18,5 +18,14 @@
     "*.lock"
   ],
   "ignoreRegExpList": ["/https?:\\/\\/\\S+/", "/[0-9a-f]{7,40}/"],
-  "words": ["pycache", "venv", "vikunja", "pytest", "testpaths", "pyproject"]
+  "words": [
+    "pycache",
+    "venv",
+    "vikunja",
+    "pytest",
+    "testpaths",
+    "pyproject",
+    "pydantic",
+    "delenv"
+  ]
 }
