@@ -1,6 +1,6 @@
 """Application settings, read from environment variables."""
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _API_SUFFIX = "/api/v1"
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     vikunja_url: str
-    vikunja_api_token: str
+    vikunja_api_token: SecretStr
 
     @field_validator("vikunja_url")
     @classmethod

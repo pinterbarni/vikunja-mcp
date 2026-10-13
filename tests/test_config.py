@@ -11,7 +11,7 @@ def test_reads_values_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = Settings(_env_file=None)  # don't read from real env file please!!! :D
 
     assert settings.vikunja_url == "https://vikunja.example.com"
-    assert settings.vikunja_api_token == "secret-token"
+    assert settings.vikunja_api_token.get_secret_value() == "secret-token"
 
 
 def test_token_is_required(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -40,3 +40,14 @@ def test_url_is_normalised(raw_url: str) -> None:
 def test_url_without_scheme_is_rejected() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, vikunja_url="vikunja.example.com", vikunja_api_token="t")
+
+
+def test_token_does_not_leak_in_repr() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.example.com",
+        vikunja_api_token="super-secret",
+    )
+
+    assert "super-secret" not in repr(settings)
+    assert "super-secret" not in str(settings)
