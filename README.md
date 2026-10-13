@@ -119,6 +119,21 @@ docker compose -f compose.dev.yml down
 rm -rf dev-data
 ```
 
+### Testing notes
+
+Async tests are plain `async def` functions. `asyncio_mode = "auto"` in `pyproject.toml` means pytest-asyncio picks them up without a marker.
+
+Calls to Vikunja are mocked with respx, so the test suite needs no running Vikunja and no network:
+
+```python
+@respx.mock
+async def test_example(client):
+    respx.get("https://vikunja.test/api/v1/projects").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+    ...
+```
+
 ## Project layout
 
 ```bash
@@ -139,6 +154,8 @@ pyproject.toml     project metadata and tool settings
 - [pytest](https://docs.pytest.org/): test runner
 - [Ruff](https://docs.astral.sh/ruff/): linter and formatter
 - [pydantic](https://pydantic.dev/docs/validation/dev/get-started/): data validation library
+- [pytest-asyncio](https://pytest-asyncio.readthedocs.io/en/stable/concepts.html#test-discovery-modes): runs `async def` tests, hence to `auto mode`, no marker is needed
+- [respx](https://lundberg.github.io/respx/): mocks httpx requests, so tests never touch the network
 
 ### Vikunja
 

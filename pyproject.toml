@@ -20,11 +20,14 @@ build-backend = "uv_build"
 dev = [
     "codespell>=2.4.3",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "respx>=0.23.1",
     "ruff>=0.17.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
