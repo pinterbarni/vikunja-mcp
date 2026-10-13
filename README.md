@@ -101,6 +101,24 @@ Check formatting without changing any file (this is what CI will run):
 uv run ruff format --check .
 ```
 
+### Local Vikunja
+
+Start a throwaway Vikunja for manual testing:
+
+```bash
+mkdir -p dev-data/vikunja
+docker compose -f compose.dev.yml up -d
+```
+
+Open `http://localhost:3456`, register a user, and create an API token under Settings. Use `http://localhost:3456` as `VIKUNJA_URL` in your `.env`.
+
+Stop it, or delete all its data:
+
+```bash
+docker compose -f compose.dev.yml down
+rm -rf dev-data
+```
+
 ## Project layout
 
 ```bash

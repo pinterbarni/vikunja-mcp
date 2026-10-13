@@ -61,7 +61,10 @@
     "venv",
     "vikunja",
     "virtualenv",
-    "caplog"
+    "caplog",
+    "PUBLICURL",
+    "JWTSECRET",
+    "ENABLEREGISTRATION"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }
