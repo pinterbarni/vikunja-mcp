@@ -51,3 +51,26 @@ def test_token_does_not_leak_in_repr() -> None:
 
     assert "super-secret" not in repr(settings)
     assert "super-secret" not in str(settings)
+
+
+def test_timeout_defaults_to_ten_seconds() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.example.com",
+        vikunja_api_token="t",
+    )
+
+    assert settings.vikunja_timeout_seconds == 10.0
+
+
+@pytest.mark.parametrize(
+    "bad_timeout", [0.0, -1.0, -5.5], ids=["zero", "negative_integer", "negative_float"]
+)
+def test_timeout_must_be_positive(bad_timeout: float) -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            vikunja_url="https://vikunja.example.com",
+            vikunja_api_token="t",
+            vikunja_timeout_seconds=bad_timeout,
+        )
