@@ -75,6 +75,7 @@ def test_timeout_must_be_positive(bad_timeout: float) -> None:
             vikunja_timeout_seconds=bad_timeout,
         )
 
+
 def test_log_level_defaults_to_info() -> None:
     settings = Settings(
         _env_file=None,

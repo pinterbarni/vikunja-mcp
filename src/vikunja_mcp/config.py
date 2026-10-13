@@ -48,4 +48,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Load settings once and reuse them."""
     return Settings()
-
