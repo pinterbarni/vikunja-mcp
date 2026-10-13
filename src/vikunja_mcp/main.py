@@ -8,7 +8,10 @@ from vikunja_mcp.logging_config import configure_logging
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Builds the FastAPI application. Settings can be passed in, which keeps tests independent of env. """
+    """
+    Builds the FastAPI application.
+    Settings can be passed in, which keeps tests independent of env.
+    """
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
