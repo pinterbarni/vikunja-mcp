@@ -65,7 +65,8 @@
     "PUBLICURL",
     "JWTSECRET",
     "ENABLEREGISTRATION",
-    "excinfo"
+    "excinfo",
+    "mcpserver"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }
