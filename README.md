@@ -4,6 +4,12 @@ MCP server that exposes a self-hosted Vikunja instance as tools for MCP clients.
 
 Work in progress.
 
+## Status
+
+The server runs, answers `/health`, and exposes one tool, `list_projects`, over MCP streamable HTTP. Task tools, auth on `/mcp` and Docker deployment come next.
+
+Until auth lands, do not expose the server to the public internet.
+
 ## Setup
 
 You need [uv](https://docs.astral.sh/uv/) installed.
@@ -38,6 +44,8 @@ Check if it runs:
 curl localhost:8000/health
 ```
 
+`/health` always returns 200. `status` is `ok` when Vikunja is reachable (with `vikunja_version`), or `degraded` when it is not.
+
 ## Configuration
 
 Settings are environment variables, or entries in a local `.env` file.
@@ -51,6 +59,48 @@ Settings are environment variables, or entries in a local `.env` file.
 | `ALLOWED_HOSTS`           | no       | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying. |
 
 The server does not start if a required variable is missing or invalid.
+
+Requests to `/mcp` with a host not in `ALLOWED_HOSTS` get `421 Invalid Host header`.
+
+## Tools
+
+| Tool            | Arguments                          | Returns                                     |
+| --------------- | ---------------------------------- | ------------------------------------------- |
+| `list_projects` | `include_archived` (default false) | List of projects with `id`, `title`, `archived` |
+
+Only the first page of results from Vikunja is returned for now. Vikunja saved filters show up as projects with negative ids (for example `My Open Tasks`).
+
+## Connect a client
+
+Add the running server to Claude Code:
+
+```bash
+claude mcp add --transport http vikunja http://localhost:8000/mcp
+```
+
+Or try the tools in the MCP Inspector (needs Node):
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Cloud clients like the Claude web app need a public HTTPS address, that comes with the deployment milestone.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    C[MCP client] --> A[FastAPI app]
+    A --> H["/health"]
+    A --> M["/mcp"]
+    M --> T[Tool layer]
+    H --> I[VikunjaClient interface]
+    T --> I
+    I --> X[httpx implementation]
+    X --> V[Vikunja REST API]
+```
+
+Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(settings, client)` accepts both, so tests never touch the network.
 
 ## Development
 
@@ -139,9 +189,23 @@ async def test_example(client):
 
 ```bash
 src/vikunja_mcp/   the package
+  main.py          create_app, the app factory
+  config.py        settings from env / .env
+  health.py        /health endpoint
+  mcp_server.py    MCP server, registers the tools
+  tools/           MCP tools
+  vikunja/         Vikunja client, models, errors
 tests/             tests, run with pytest
+compose.dev.yml    local Vikunja for manual testing
+Makefile           check, fix and single checks
 pyproject.toml     project metadata and tool settings
 ```
+
+## Roadmap
+
+- Milestone 2: task tools and shared-secret auth on `/mcp`
+- Milestone 3: Docker and VPS deployment
+- Later: pagination, retries, comments, labels, JWT validation
 
 ## Docs
 
@@ -157,6 +221,8 @@ pyproject.toml     project metadata and tool settings
 - [pydantic](https://pydantic.dev/docs/validation/dev/get-started/): data validation library
 - [pytest-asyncio](https://pytest-asyncio.readthedocs.io/en/stable/concepts.html#test-discovery-modes): runs `async def` tests, hence to `auto mode`, no marker is needed
 - [respx](https://lundberg.github.io/respx/): mocks httpx requests, so tests never touch the network
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk): MCP server and streamable HTTP transport
+- [FastAPI](https://fastapi.tiangolo.com/): web framework, serves `/health` and mounts `/mcp`
 
 ### Vikunja
 
