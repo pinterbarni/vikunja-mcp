@@ -4,8 +4,9 @@ import respx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.client import HttpxVikunjaClient
+from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
 
-BASE = "https://vikunja.test/api/v1"
+BASE = "https://vikunja.test.url/api/v1"
 
 
 @pytest.fixture
@@ -39,3 +40,35 @@ async def test_requests_carry_the_bearer_token(client: HttpxVikunjaClient) -> No
     await client.list_projects()
 
     assert route.calls.last.request.headers["authorization"] == "Bearer test-token"
+
+
+@respx.mock
+async def test_api_error_carries_status_and_message(client) -> None:
+    respx.get(f"{BASE}/projects").mock(
+        return_value=httpx.Response(401, json={"message": "invalid token"})
+    )
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await client.list_projects()
+
+    assert excinfo.value.status_code == 401
+    assert "invalid token" in str(excinfo.value)
+
+
+@respx.mock
+async def test_api_error_without_json_body_uses_plain_text(client) -> None:
+    respx.get(f"{BASE}/projects").mock(return_value=httpx.Response(502, text="Bad Gateway"))
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await client.list_projects()
+
+    assert excinfo.value.status_code == 502
+    assert "Bad Gateway" in str(excinfo.value)
+
+
+@respx.mock
+async def test_network_failure_becomes_unreachable(client) -> None:
+    respx.get(f"{BASE}/projects").mock(side_effect=httpx.ConnectError("boom"))
+
+    with pytest.raises(VikunjaUnreachable):
+        await client.list_projects()

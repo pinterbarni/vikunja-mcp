@@ -9,5 +9,5 @@ def settings() -> Settings:
     return Settings(
         _env_file=None,
         vikunja_url="https://vikunja.test.url",
-        vikunja_api_token="example-test-token",
+        vikunja_api_token="test-token",
     )

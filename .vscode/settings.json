@@ -64,7 +64,8 @@
     "caplog",
     "PUBLICURL",
     "JWTSECRET",
-    "ENABLEREGISTRATION"
+    "ENABLEREGISTRATION",
+    "excinfo"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }
