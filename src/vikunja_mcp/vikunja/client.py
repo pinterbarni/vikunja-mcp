@@ -1,10 +1,22 @@
 """Vikunja client, httpx implementation."""
 
+from typing import Protocol
+
 import httpx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
 from vikunja_mcp.vikunja.models import Project, ServerInfo
+
+
+class VikunjaClient(Protocol):
+    """What the app needs from Vikunja - depend on this, not on httpx."""
+
+    async def get_info(self) -> ServerInfo: ...
+
+    async def list_projects(self, include_archived: bool = False) -> list[Project]: ...
+
+    async def aclose(self) -> None: ...
 
 
 class HttpxVikunjaClient:
