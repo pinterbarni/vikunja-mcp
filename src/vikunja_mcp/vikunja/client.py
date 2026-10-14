@@ -6,7 +6,7 @@ import httpx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
-from vikunja_mcp.vikunja.models import Project, ServerInfo
+from vikunja_mcp.vikunja.models import Project, ServerInfo, Task
 
 
 class VikunjaClient(Protocol):
@@ -15,6 +15,10 @@ class VikunjaClient(Protocol):
     async def get_info(self) -> ServerInfo: ...
 
     async def list_projects(self, include_archived: bool = False) -> list[Project]: ...
+
+    async def list_tasks(
+        self, project_id: int | None = None, include_done: bool = False
+    ) -> list[Task]: ...
 
     async def aclose(self) -> None: ...
 
@@ -31,6 +35,14 @@ class HttpxVikunjaClient:
         params = {"is_archived": "true"} if include_archived else None
         data = await self._get("/projects", params=params)
         return [Project.model_validate(item) for item in data]
+
+    async def list_tasks(
+        self, project_id: int | None = None, include_done: bool = False
+    ) -> list[Task]:
+        path = "/tasks" if project_id is None else f"/projects/{project_id}/tasks"
+        params = None if include_done else {"filter": "done = false"}
+        data = await self._get(path, params=params)
+        return [Task.model_validate(item) for item in data]
 
     async def get_info(self) -> ServerInfo:
         return ServerInfo.model_validate(await self._get("/info"))

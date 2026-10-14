@@ -99,3 +99,32 @@ async def test_get_info_returns_version(client: HttpxVikunjaClient) -> None:
     info = await client.get_info()
 
     assert info.version == "v2.7.0"
+
+@respx.mock
+async def test_list_tasks_asks_for_open_tasks_by_default(client: HttpxVikunjaClient) -> None:
+    route = respx.get(f"{BASE}/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": 1, "title": "eat cake", "project_id": 2}])
+    )
+
+    tasks = await client.list_tasks()
+
+    assert [(t.id, t.title) for t in tasks] == [(1, "eat cake")]
+    assert route.calls.last.request.url.params["filter"] == "done = false"
+
+
+@respx.mock
+async def test_list_tasks_can_include_done_tasks(client: HttpxVikunjaClient) -> None:
+    route = respx.get(f"{BASE}/tasks").mock(return_value=httpx.Response(200, json=[]))
+
+    await client.list_tasks(include_done=True)
+
+    assert "filter" not in route.calls.last.request.url.params
+
+
+@respx.mock
+async def test_list_tasks_can_be_limited_to_one_project(client: HttpxVikunjaClient) -> None:
+    route = respx.get(f"{BASE}/projects/2/tasks").mock(return_value=httpx.Response(200, json=[]))
+
+    await client.list_tasks(project_id=2)
+
+    assert route.called
