@@ -14,3 +14,11 @@ class Project(BaseModel):
     description: str = ""
     is_archived: bool = False
     parent_project_id: int = 0
+
+
+class ServerInfo(BaseModel):
+    """Vikunja's public info endpoint's info"""
+
+    model_config = ConfigDict(extra="ignore")
+
+    version: str

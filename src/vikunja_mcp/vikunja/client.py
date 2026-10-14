@@ -4,7 +4,7 @@ import httpx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
-from vikunja_mcp.vikunja.models import Project
+from vikunja_mcp.vikunja.models import Project, ServerInfo
 
 
 class HttpxVikunjaClient:
@@ -19,6 +19,9 @@ class HttpxVikunjaClient:
         params = {"is_archived": "true"} if include_archived else None
         data = await self._get("/projects", params=params)
         return [Project.model_validate(item) for item in data]
+
+    async def get_info(self) -> ServerInfo:
+        return ServerInfo.model_validate(await self._get("/info"))
 
     async def aclose(self) -> None:
         await self._http.aclose()

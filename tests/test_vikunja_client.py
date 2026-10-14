@@ -90,3 +90,12 @@ async def test_list_projects_can_include_archived(client: HttpxVikunjaClient) ->
     await client.list_projects(include_archived=True)
 
     assert route.calls.last.request.url.params["is_archived"] == "true"
+
+
+@respx.mock
+async def test_get_info_returns_version(client: HttpxVikunjaClient) -> None:
+    respx.get(f"{BASE}/info").mock(return_value=httpx.Response(200, json={"version": "v2.7.0"}))
+
+    info = await client.get_info()
+
+    assert info.version == "v2.7.0"
