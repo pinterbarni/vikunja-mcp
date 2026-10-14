@@ -100,6 +100,7 @@ async def test_get_info_returns_version(client: HttpxVikunjaClient) -> None:
 
     assert info.version == "v2.7.0"
 
+
 @respx.mock
 async def test_list_tasks_asks_for_open_tasks_by_default(client: HttpxVikunjaClient) -> None:
     route = respx.get(f"{BASE}/tasks").mock(
