@@ -39,7 +39,7 @@ async def test_requests_carry_the_bearer_token(client: HttpxVikunjaClient) -> No
 
     await client.list_projects()
 
-    assert route.calls.last.request.headers["authorization"] == "Bearer test-token"
+    assert route.calls.last.request.headers["authorization"] == "Bearer example-test-token"
 
 
 @respx.mock
