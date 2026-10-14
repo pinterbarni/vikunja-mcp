@@ -72,3 +72,21 @@ async def test_network_failure_becomes_unreachable(client) -> None:
 
     with pytest.raises(VikunjaUnreachable):
         await client.list_projects()
+
+
+@respx.mock
+async def test_list_projects_hides_archived_by_default(client: HttpxVikunjaClient) -> None:
+    route = respx.get(f"{BASE}/projects").mock(return_value=httpx.Response(200, json=[]))
+
+    await client.list_projects()
+
+    assert "is_archived" not in route.calls.last.request.url.params
+
+
+@respx.mock
+async def test_list_projects_can_include_archived(client: HttpxVikunjaClient) -> None:
+    route = respx.get(f"{BASE}/projects").mock(return_value=httpx.Response(200, json=[]))
+
+    await client.list_projects(include_archived=True)
+
+    assert route.calls.last.request.url.params["is_archived"] == "true"

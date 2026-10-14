@@ -15,16 +15,17 @@ class HttpxVikunjaClient:
             timeout=settings.vikunja_timeout_seconds,
         )
 
-    async def list_projects(self) -> list[Project]:
-        data = await self._get("/projects")
+    async def list_projects(self, include_archived: bool = False) -> list[Project]:
+        params = {"is_archived": "true"} if include_archived else None
+        data = await self._get("/projects", params=params)
         return [Project.model_validate(item) for item in data]
 
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def _get(self, path: str):
+    async def _get(self, path: str, params: dict[str, str] | None = None):
         try:
-            response = await self._http.get(path)
+            response = await self._http.get(path, params=params)
         except httpx.HTTPError as exc:
             raise VikunjaUnreachable(f"Could not reach Vikunja: {exc}") from exc
         if response.is_error:
