@@ -42,12 +42,13 @@ curl localhost:8000/health
 
 Settings are environment variables, or entries in a local `.env` file.
 
-| Variable                  | Required | Default | Purpose                                                                       |
-| ------------------------- | -------- | ------- | ----------------------------------------------------------------------------- |
-| `VIKUNJA_URL`             | yes      | none    | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted. |
-| `VIKUNJA_API_TOKEN`       | yes      | none    | API token used for every Vikunja request. Never logged.                       |
-| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`    | Seconds to wait for Vikunja before giving up. Must be greater than zero.      |
-| `LOG_LEVEL`               | no       | `INFO`  | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                       |
+| Variable                  | Required | Default                          | Purpose                                                                                 |
+| ------------------------- | -------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| `VIKUNJA_URL`             | yes      | none                             | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted.           |
+| `VIKUNJA_API_TOKEN`       | yes      | none                             | API token used for every Vikunja request. Never logged.                                 |
+| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`                             | Seconds to wait for Vikunja before giving up. Must be greater than zero.                |
+| `LOG_LEVEL`               | no       | `INFO`                           | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                                 |
+| `ALLOWED_HOSTS`           | no       | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying. |
 
 The server does not start if a required variable is missing or invalid.
 

@@ -105,3 +105,23 @@ def test_unknown_log_level_is_rejected() -> None:
             vikunja_api_token="t",
             log_level="loud",
         )
+
+
+def test_allowed_hosts_default_to_local_only(monkeypatch) -> None:
+    monkeypatch.setenv("VIKUNJA_URL", "https://vikunja.example.com")
+    monkeypatch.setenv("VIKUNJA_API_TOKEN", "token")
+    monkeypatch.delenv("ALLOWED_HOSTS", raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.allowed_hosts == ["localhost:*", "127.0.0.1:*"]
+
+
+def test_allowed_hosts_are_read_as_a_json_list(monkeypatch) -> None:
+    monkeypatch.setenv("VIKUNJA_URL", "https://vikunja.example.com")
+    monkeypatch.setenv("VIKUNJA_API_TOKEN", "token")
+    monkeypatch.setenv("ALLOWED_HOSTS", '["mcp.example.com"]')
+
+    settings = Settings(_env_file=None)
+
+    assert settings.allowed_hosts == ["mcp.example.com"]

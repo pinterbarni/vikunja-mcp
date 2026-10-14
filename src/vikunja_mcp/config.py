@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _API_SUFFIX = "/api/v1"
 _LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+_LOCAL_HOSTS = ["localhost:*", "127.0.0.1:*"]
 
 
 class Settings(BaseSettings):
@@ -18,6 +19,11 @@ class Settings(BaseSettings):
     vikunja_api_token: SecretStr
     vikunja_timeout_seconds: float = Field(default=10.0, gt=0)
     log_level: str = "INFO"
+    allowed_hosts: list[str] = Field(
+        default_factory=lambda: list(_LOCAL_HOSTS),
+        description="Host headers accepted on /mcp (DNS rebinding protection). "
+        "Add your public domain, for example mcp.example.com. JSON list in the environment.",
+    )
 
     @field_validator("vikunja_url")
     @classmethod
