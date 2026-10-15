@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from tests.fakes import FakeVikunjaClient
 from vikunja_mcp.mcp_server import build_mcp_server
-from vikunja_mcp.vikunja.models import Assignee, Label, Task
+from vikunja_mcp.vikunja.models import Assignee, Label, Project, Task
 
 
 def make_server():
@@ -82,3 +82,25 @@ async def test_get_task_returns_the_details() -> None:
     assert task["labels"] == ["money"]
     assert task["assignees"] == ["testuser"]
     assert task["due_date"] is None
+
+
+async def test_create_task_uses_the_given_project() -> None:
+    fake = FakeVikunjaClient(projects=[Project(id=1, title="Inbox"), Project(id=2, title="Home")])
+    mcp = build_mcp_server(fake)
+
+    result = await mcp.call_tool(
+        "create_task", {"title": "Buy milk", "project_id": 2, "priority": 3}
+    )
+
+    assert result.structured_content["title"] == "Buy milk"
+    assert result.structured_content["project_id"] == 2
+    assert [t.title for t in fake.tasks] == ["Buy milk"]
+
+
+async def test_create_task_without_a_project_goes_to_the_inbox() -> None:
+    fake = FakeVikunjaClient(projects=[Project(id=2, title="Home"), Project(id=1, title="Inbox")])
+    mcp = build_mcp_server(fake)
+
+    result = await mcp.call_tool("create_task", {"title": "Call mum"})
+
+    assert result.structured_content["project_id"] == 1

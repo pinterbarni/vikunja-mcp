@@ -6,6 +6,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel
 
 from vikunja_mcp.vikunja.client import VikunjaClient
+from vikunja_mcp.vikunja.models import Task
 
 
 class TaskSummary(BaseModel):
@@ -32,6 +33,32 @@ class TaskDetail(BaseModel):
     updated: datetime | None
     labels: list[str]
     assignees: list[str]
+
+
+def _to_detail(task: Task) -> TaskDetail:
+    return TaskDetail(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        done=task.done,
+        priority=task.priority,
+        percent_done=task.percent_done,
+        project_id=task.project_id,
+        due_date=task.due_date,
+        start_date=task.start_date,
+        end_date=task.end_date,
+        created=task.created,
+        updated=task.updated,
+        labels=[label.title for label in task.labels],
+        assignees=[a.username for a in task.assignees],
+    )
+
+
+async def _inbox_id(client: VikunjaClient) -> int:
+    for project in await client.list_projects():
+        if project.title.lower() == "inbox":
+            return project.id
+    raise ValueError("No project named Inbox was found. Pass a project_id (see list_projects).")
 
 
 def register(mcp: MCPServer, client: VikunjaClient) -> None:
@@ -66,20 +93,22 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         The description is HTML as written in Vikunja.
         Labels and assignees are returned as plain names.
         """
-        t = await client.get_task(task_id)
-        return TaskDetail(
-            id=t.id,
-            title=t.title,
-            description=t.description,
-            done=t.done,
-            priority=t.priority,
-            percent_done=t.percent_done,
-            project_id=t.project_id,
-            due_date=t.due_date,
-            start_date=t.start_date,
-            end_date=t.end_date,
-            created=t.created,
-            updated=t.updated,
-            labels=[label.title for label in t.labels],
-            assignees=[a.username for a in t.assignees],
-        )
+        return _to_detail(await client.get_task(task_id))
+
+    @mcp.tool()
+    async def create_task(
+        title: str,
+        project_id: int | None = None,
+        description: str = "",
+        due_date: datetime | None = None,
+        priority: int = 0,
+    ) -> TaskDetail:
+        """Create a task. Without project_id it goes to the Inbox.
+
+        priority runs from 0 (none) to 5 (most urgent).
+        due_date is an ISO 8601 date and time.
+        """
+        if project_id is None:
+            project_id = await _inbox_id(client)
+        task = await client.create_task(project_id, title, description, due_date, priority)
+        return _to_detail(task)
