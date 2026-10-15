@@ -1,6 +1,7 @@
 """In-memory stubs for Vikunja, used by tests instead of the network."""
 
 from datetime import datetime
+from typing import Any
 
 from vikunja_mcp.vikunja.errors import VikunjaAPIError
 from vikunja_mcp.vikunja.models import Project, ServerInfo, Task
@@ -64,6 +65,13 @@ class FakeVikunjaClient:
         )
         self.tasks.append(task)
         return task
+
+    async def update_task(self, task_id: int, changes: dict[str, Any]) -> Task:
+        self._fail_if_told_to()
+        task = await self.get_task(task_id)
+        updated = Task.model_validate({**task.model_dump(), **changes})
+        self.tasks = [updated if t.id == task_id else t for t in self.tasks]
+        return updated
 
     async def aclose(self) -> None:
         self.closed = True

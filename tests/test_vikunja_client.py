@@ -193,3 +193,47 @@ async def test_create_task_leaves_out_the_due_date_when_there_is_none(client) ->
     await client.create_task(3, "Plain")
 
     assert "due_date" not in json.loads(route.calls.last.request.content)
+
+
+@respx.mock
+async def test_update_task_sends_the_whole_task_with_the_changes(client) -> None:
+    respx.get(f"{BASE}/tasks/7").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": 7,
+                "title": "Old",
+                "description": "<p>keep me</p>",
+                "priority": 1,
+                "project_id": 2,
+                "labels": [{"id": 1, "title": "money"}],
+            },
+        )
+    )
+    route = respx.post(f"{BASE}/tasks/7").mock(
+        return_value=httpx.Response(
+            200, json={"id": 7, "title": "New", "description": "<p>keep me</p>", "project_id": 2}
+        )
+    )
+
+    task = await client.update_task(7, {"title": "New"})
+
+    assert task.title == "New"
+    sent = json.loads(route.calls.last.request.content)
+    assert sent["title"] == "New"
+    assert sent["description"] == "<p>keep me</p>"
+    assert sent["labels"] == [{"id": 1, "title": "money"}]
+
+
+@respx.mock
+async def test_update_task_does_not_post_when_the_task_is_missing(client) -> None:
+    respx.get(f"{BASE}/tasks/99").mock(
+        return_value=httpx.Response(404, json={"message": "The task does not exist."})
+    )
+    post = respx.post(f"{BASE}/tasks/99").mock(return_value=httpx.Response(200, json={}))
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await client.update_task(99, {"title": "x"})
+
+    assert excinfo.value.status_code == 404
+    assert not post.called

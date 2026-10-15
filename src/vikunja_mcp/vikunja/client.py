@@ -32,6 +32,8 @@ class VikunjaClient(Protocol):
         priority: int = 0,
     ) -> Task: ...
 
+    async def update_task(self, task_id: int, changes: dict[str, Any]) -> Task: ...
+
     async def aclose(self) -> None: ...
 
 
@@ -73,6 +75,11 @@ class HttpxVikunjaClient:
         return Task.model_validate(
             await self._request("PUT", f"/projects/{project_id}/tasks", json=body)
         )
+
+    async def update_task(self, task_id: int, changes: dict[str, Any]) -> Task:
+        current = await self._get(f"/tasks/{task_id}")
+        updated = await self._request("POST", f"/tasks/{task_id}", json={**current, **changes})
+        return Task.model_validate(updated)
 
     async def get_info(self) -> ServerInfo:
         return ServerInfo.model_validate(await self._get("/info"))

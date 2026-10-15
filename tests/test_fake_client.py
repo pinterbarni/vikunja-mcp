@@ -57,3 +57,21 @@ async def test_fake_creates_a_task_with_the_next_id() -> None:
 
     assert (task.id, task.title, task.project_id, task.priority) == (6, "Buy milk", 2, 3)
     assert task in fake.tasks
+
+
+async def test_fake_updates_only_the_given_fields() -> None:
+    fake = FakeVikunjaClient(tasks=[Task(id=1, title="Old", priority=2)])
+
+    updated = await fake.update_task(1, {"title": "New"})
+
+    assert (updated.title, updated.priority) == ("New", 2)
+    assert fake.tasks[0].title == "New"
+
+
+async def test_fake_update_raises_a_404_for_an_unknown_task() -> None:
+    fake = FakeVikunjaClient()
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await fake.update_task(99, {"title": "x"})
+
+    assert excinfo.value.status_code == 404
