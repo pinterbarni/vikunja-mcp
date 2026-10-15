@@ -48,3 +48,12 @@ async def test_fake_raises_a_404_for_an_unknown_task() -> None:
         await fake.get_task(99)
 
     assert excinfo.value.status_code == 404
+
+
+async def test_fake_creates_a_task_with_the_next_id() -> None:
+    fake = FakeVikunjaClient(tasks=[Task(id=5, title="Old")])
+
+    task = await fake.create_task(2, "Buy milk", priority=3)
+
+    assert (task.id, task.title, task.project_id, task.priority) == (6, "Buy milk", 2, 3)
+    assert task in fake.tasks

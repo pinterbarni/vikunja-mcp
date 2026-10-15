@@ -1,5 +1,7 @@
 """In-memory stubs for Vikunja, used by tests instead of the network."""
 
+from datetime import datetime
+
 from vikunja_mcp.vikunja.errors import VikunjaAPIError
 from vikunja_mcp.vikunja.models import Project, ServerInfo, Task
 
@@ -42,6 +44,26 @@ class FakeVikunjaClient:
             if task.id == task_id:
                 return task
         raise VikunjaAPIError(404, "The task does not exist.")
+
+    async def create_task(
+        self,
+        project_id: int,
+        title: str,
+        description: str = "",
+        due_date: datetime | None = None,
+        priority: int = 0,
+    ) -> Task:
+        self._fail_if_told_to()
+        task = Task(
+            id=max((t.id for t in self.tasks), default=0) + 1,
+            title=title,
+            description=description,
+            project_id=project_id,
+            due_date=due_date,
+            priority=priority,
+        )
+        self.tasks.append(task)
+        return task
 
     async def aclose(self) -> None:
         self.closed = True
