@@ -20,6 +20,8 @@ class VikunjaClient(Protocol):
         self, project_id: int | None = None, include_done: bool = False
     ) -> list[Task]: ...
 
+    async def get_task(self, task_id: int) -> Task: ...
+
     async def aclose(self) -> None: ...
 
 
@@ -43,6 +45,9 @@ class HttpxVikunjaClient:
         params = None if include_done else {"filter": "done = false"}
         data = await self._get(path, params=params)
         return [Task.model_validate(item) for item in data]
+
+    async def get_task(self, task_id: int) -> Task:
+        return Task.model_validate(await self._get(f"/tasks/{task_id}"))
 
     async def get_info(self) -> ServerInfo:
         return ServerInfo.model_validate(await self._get("/info"))

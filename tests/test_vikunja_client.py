@@ -129,3 +129,28 @@ async def test_list_tasks_can_be_limited_to_one_project(client: HttpxVikunjaClie
     await client.list_tasks(project_id=2)
 
     assert route.called
+
+
+@respx.mock
+async def test_get_task_returns_the_task(client: HttpxVikunjaClient) -> None:
+    respx.get(f"{BASE}/tasks/7").mock(
+        return_value=httpx.Response(
+            200, json={"id": 7, "title": "Call the bank", "description": "<p>ask about fees</p>"}
+        )
+    )
+
+    task = await client.get_task(7)
+
+    assert (task.id, task.title) == (7, "Call the bank")
+
+
+@respx.mock
+async def test_get_task_raises_an_api_error_when_it_is_missing(client: HttpxVikunjaClient) -> None:
+    respx.get(f"{BASE}/tasks/99").mock(
+        return_value=httpx.Response(404, json={"message": "The task does not exist."})
+    )
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await client.get_task(99)
+
+    assert excinfo.value.status_code == 404
