@@ -67,7 +67,8 @@
     "ENABLEREGISTRATION",
     "excinfo",
     "mcpserver",
-    "cret"
+    "cret",
+    "modelcontextprotocol"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }

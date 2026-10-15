@@ -6,9 +6,9 @@ Work in progress.
 
 ## Status
 
-The server runs, answers `/health`, and exposes one tool, `list_projects`, over MCP streamable HTTP. Task tools, auth on `/mcp` and Docker deployment come next.
+The server runs, answers `/health`, and exposes six tools for projects and tasks over MCP streamable HTTP, with readable error messages and optional shared-secret auth on `/mcp`. Docker deployment comes next.
 
-Until auth lands, do not expose the server to the public internet.
+Set `MCP_AUTH_TOKEN` before you expose the server beyond localhost, and serve it over HTTPS because the token travels in a header.
 
 ## Setup
 
@@ -50,13 +50,16 @@ curl localhost:8000/health
 
 Settings are environment variables, or entries in a local `.env` file.
 
-| Variable                  | Required | Default                          | Purpose                                                                                 |
-| ------------------------- | -------- | -------------------------------- | --------------------------------------------------------------------------------------- |
-| `VIKUNJA_URL`             | yes      | none                             | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted.           |
-| `VIKUNJA_API_TOKEN`       | yes      | none                             | API token used for every Vikunja request. Never logged.                                 |
-| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`                             | Seconds to wait for Vikunja before giving up. Must be greater than zero.                |
-| `LOG_LEVEL`               | no       | `INFO`                           | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                                 |
-| `ALLOWED_HOSTS`           | no       | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying. |
+| Variable                  | Required | Default                          | Purpose                                                                                                                                                                                                                     |
+| ------------------------- | -------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VIKUNJA_URL`             | yes      | none                             | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted.                                                                                                                                               |
+| `VIKUNJA_API_TOKEN`       | yes      | none                             | API token used for every Vikunja request. Never logged.                                                                                                                                                                     |
+| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`                             | Seconds to wait for Vikunja before giving up. Must be greater than zero.                                                                                                                                                    |
+| `LOG_LEVEL`               | no       | `INFO`                           | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                                                                                                                                                                     |
+| `ALLOWED_HOSTS`           | no       | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying.                                                                                                                                     |
+| `MCP_AUTH_TOKEN`          | no       | none                             | Shared secret for `/mcp`. Requests need the header `Authorization: Bearer <token>`, otherwise they get 401. If unset, `/mcp` is open and the server logs a warning at startup. A blank value counts as unset. Never logged. |
+
+To create a token, run `openssl rand -hex 32` and put the result into `.env` as `MCP_AUTH_TOKEN`. `/health` stays open even when the token is set.
 
 The server does not start if a required variable is missing or invalid.
 
@@ -64,19 +67,32 @@ Requests to `/mcp` with a host not in `ALLOWED_HOSTS` get `421 Invalid Host head
 
 ## Tools
 
-| Tool            | Arguments                          | Returns                                     |
-| --------------- | ---------------------------------- | ------------------------------------------- |
-| `list_projects` | `include_archived` (default false) | List of projects with `id`, `title`, `archived` |
+| Tool            | Arguments                                                                                                                        | Returns                                                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects` | `include_archived` (default false)                                                                                               | Projects with `id`, `title`, `archived`                                                                                           |
+| `list_tasks`    | `project_id` (optional), `include_done` (default false)                                                                          | Open tasks with `id`, `title`, `done`, `priority`, `project_id`, `due_date`                                                       |
+| `get_task`      | `task_id`                                                                                                                        | All details, including the `description` (HTML as written in Vikunja), `percent_done`, dates, labels and assignees as plain names |
+| `create_task`   | `title`, `project_id` (optional, defaults to the project named Inbox), `description`, `due_date` (ISO 8601), `priority` (0 to 5) | The created task                                                                                                                  |
+| `update_task`   | `task_id`, plus any of `title`, `description`, `due_date`, `clear_due_date`, `priority`, `done`. Only the given fields change.   | The updated task                                                                                                                  |
+| `complete_task` | `task_id`. Marks the task done.                                                                                                  | The task                                                                                                                          |
 
-Only the first page of results from Vikunja is returned for now. Vikunja saved filters show up as projects with negative ids (for example `My Open Tasks`).
+Only the first page of results from Vikunja is returned for now. Vikunja saved filters show up as projects with negative ids (for example `My Open Tasks`). `due_date` is null when a task has no due date.
+
+### Errors
+
+When Vikunja is unreachable, rejects the token, or does not find something, the tool answers with a short readable message (for example `Not found: The task does not exist.`) instead of a generic failure.
+
+`update_task` reads the task first and sends the whole task back, because Vikunja can reset fields that are missing from an update.
 
 ## Connect a client
 
 Add the running server to Claude Code:
 
 ```bash
-claude mcp add --transport http vikunja http://localhost:8000/mcp
+claude mcp add --transport http vikunja http://localhost:8000/mcp --header "Authorization: Bearer <your token>"
 ```
+
+The header can be left out when `MCP_AUTH_TOKEN` is not set.
 
 Or try the tools in the MCP Inspector (needs Node):
 
@@ -92,13 +108,16 @@ Cloud clients like the Claude web app need a public HTTPS address, that comes wi
 flowchart LR
     C[MCP client] --> A[FastAPI app]
     A --> H["/health"]
-    A --> M["/mcp"]
+    A --> B[Bearer token check]
+    B --> M["/mcp"]
     M --> T[Tool layer]
     H --> I[VikunjaClient interface]
     T --> I
     I --> X[httpx implementation]
     X --> V[Vikunja REST API]
 ```
+
+`/health` is not behind the token check.
 
 Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(settings, client)` accepts both, so tests never touch the network.
 
@@ -191,9 +210,10 @@ async def test_example(client):
 src/vikunja_mcp/   the package
   main.py          create_app, the app factory
   config.py        settings from env / .env
+  auth.py          bearer token check for /mcp
   health.py        /health endpoint
   mcp_server.py    MCP server, registers the tools
-  tools/           MCP tools
+  tools/           MCP tools and their error handling
   vikunja/         Vikunja client, models, errors
 tests/             tests, run with pytest
 compose.dev.yml    local Vikunja for manual testing
@@ -203,7 +223,7 @@ pyproject.toml     project metadata and tool settings
 
 ## Roadmap
 
-- Milestone 2: task tools and shared-secret auth on `/mcp`
+- Milestone 2 (done): task tools, readable errors, shared-secret auth on `/mcp`
 - Milestone 3: Docker and VPS deployment
 - Later: pagination, retries, comments, labels, JWT validation
 
