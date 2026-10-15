@@ -17,6 +17,23 @@ class TaskSummary(BaseModel):
     due_date: datetime | None
 
 
+class TaskDetail(BaseModel):
+    id: int
+    title: str
+    description: str
+    done: bool
+    priority: int
+    percent_done: float
+    project_id: int
+    due_date: datetime | None
+    start_date: datetime | None
+    end_date: datetime | None
+    created: datetime | None
+    updated: datetime | None
+    labels: list[str]
+    assignees: list[str]
+
+
 def register(mcp: MCPServer, client: VikunjaClient) -> None:
     @mcp.tool()
     async def list_tasks(
@@ -40,3 +57,29 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
             )
             for t in tasks
         ]
+
+    @mcp.tool()
+    async def get_task(task_id: int) -> TaskDetail:
+        """Get all details of one Vikunja task, including its description.
+
+        Use list_tasks to find the task id.
+        The description is HTML as written in Vikunja.
+        Labels and assignees are returned as plain names.
+        """
+        t = await client.get_task(task_id)
+        return TaskDetail(
+            id=t.id,
+            title=t.title,
+            description=t.description,
+            done=t.done,
+            priority=t.priority,
+            percent_done=t.percent_done,
+            project_id=t.project_id,
+            due_date=t.due_date,
+            start_date=t.start_date,
+            end_date=t.end_date,
+            created=t.created,
+            updated=t.updated,
+            labels=[label.title for label in t.labels],
+            assignees=[a.username for a in t.assignees],
+        )

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from tests.fakes import FakeVikunjaClient
 from vikunja_mcp.mcp_server import build_mcp_server
-from vikunja_mcp.vikunja.models import Task
+from vikunja_mcp.vikunja.models import Assignee, Label, Task
 
 
 def make_server():
@@ -56,3 +56,29 @@ async def test_list_tasks_shows_due_date_or_null() -> None:
 
     assert tasks["eat cake"]["due_date"].startswith("2026-10-22")
     assert tasks["buy milk"]["due_date"] is None
+
+
+async def test_get_task_returns_the_details() -> None:
+    fake = FakeVikunjaClient(
+        tasks=[
+            Task(
+                id=5,
+                title="Call the bank",
+                description="<p>ask about fees</p>",
+                priority=3,
+                percent_done=0.5,
+                labels=[Label(id=1, title="money")],
+                assignees=[Assignee(id=1, username="testuser")],
+            )
+        ]
+    )
+
+    result = await build_mcp_server(fake).call_tool("get_task", {"task_id": 5})
+    task = result.structured_content
+
+    assert task["title"] == "Call the bank"
+    assert task["description"] == "<p>ask about fees</p>"
+    assert task["percent_done"] == 0.5
+    assert task["labels"] == ["money"]
+    assert task["assignees"] == ["testuser"]
+    assert task["due_date"] is None
