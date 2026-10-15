@@ -1,7 +1,11 @@
 from datetime import UTC, datetime
 
+import pytest
+from mcp.server.mcpserver.exceptions import ToolError
+
 from tests.fakes import FakeVikunjaClient
 from vikunja_mcp.mcp_server import build_mcp_server
+from vikunja_mcp.vikunja.errors import VikunjaUnreachable
 from vikunja_mcp.vikunja.models import Assignee, Label, Project, Task
 
 
@@ -152,3 +156,24 @@ async def test_complete_task_marks_the_task_done() -> None:
 
     assert result.structured_content["done"] is True
     assert [t.done for t in fake.tasks] == [True, False]
+
+
+async def test_get_task_reports_a_missing_task_in_plain_words() -> None:
+    mcp = build_mcp_server(FakeVikunjaClient())
+
+    with pytest.raises(ToolError, match="Not found.*does not exist"):
+        await mcp.call_tool("get_task", {"task_id": 99})
+
+
+async def test_tools_report_an_unreachable_vikunja() -> None:
+    mcp = build_mcp_server(FakeVikunjaClient(error=VikunjaUnreachable("down")))
+
+    with pytest.raises(ToolError, match="Could not reach Vikunja"):
+        await mcp.call_tool("list_tasks", {})
+
+
+async def test_create_task_without_an_inbox_explains_what_to_do() -> None:
+    mcp = build_mcp_server(FakeVikunjaClient(projects=[Project(id=2, title="Home")]))
+
+    with pytest.raises(ToolError, match="Inbox.*project_id"):
+        await mcp.call_tool("create_task", {"title": "Call mum"})

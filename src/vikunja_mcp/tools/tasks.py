@@ -4,8 +4,10 @@ from datetime import datetime
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel
 
+from vikunja_mcp.tools.errors import friendly_errors
 from vikunja_mcp.vikunja.client import VikunjaClient
 from vikunja_mcp.vikunja.models import Task
 
@@ -62,11 +64,12 @@ async def _inbox_id(client: VikunjaClient) -> int:
     for project in await client.list_projects():
         if project.title.lower() == "inbox":
             return project.id
-    raise ValueError("No project named Inbox was found. Pass a project_id (see list_projects).")
+    raise ToolError("No project named Inbox was found. Pass a project_id (see list_projects).")
 
 
 def register(mcp: MCPServer, client: VikunjaClient) -> None:
     @mcp.tool()
+    @friendly_errors
     async def list_tasks(
         project_id: int | None = None, include_done: bool = False
     ) -> list[TaskSummary]:
@@ -90,6 +93,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         ]
 
     @mcp.tool()
+    @friendly_errors
     async def get_task(task_id: int) -> TaskDetail:
         """
         Get all details of one Vikunja task, including its description.
@@ -100,6 +104,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         return _to_detail(await client.get_task(task_id))
 
     @mcp.tool()
+    @friendly_errors
     async def create_task(
         title: str,
         project_id: int | None = None,
@@ -118,6 +123,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         return _to_detail(task)
 
     @mcp.tool()
+    @friendly_errors
     async def update_task(
         task_id: int,
         title: str | None = None,
@@ -143,6 +149,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         return _to_detail(await client.update_task(task_id, changes))
 
     @mcp.tool()
+    @friendly_errors
     async def complete_task(task_id: int) -> TaskDetail:
         """
         Mark a task as done. Use list_tasks to find the task id.
