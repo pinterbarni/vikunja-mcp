@@ -1,0 +1,22 @@
+services:
+  vikunja-mcp:
+    build: .
+    image: vikunja-mcp
+    restart: unless-stopped
+    ports:
+      # TODO: next commit change from local, add proxy
+      - "127.0.0.1:8000:8000"
+    environment:
+      VIKUNJA_URL: ${VIKUNJA_URL:?set VIKUNJA_URL in .env}
+      VIKUNJA_API_TOKEN: ${VIKUNJA_API_TOKEN:?set VIKUNJA_API_TOKEN in .env}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN in .env}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?set ALLOWED_HOSTS in .env}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m

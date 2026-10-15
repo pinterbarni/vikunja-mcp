@@ -68,7 +68,11 @@
     "excinfo",
     "mcpserver",
     "cret",
-    "modelcontextprotocol"
+    "modelcontextprotocol",
+    "urllib",
+    "urlopen",
+    "PYTHONUNBUFFERED",
+    "tmpfs"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }
