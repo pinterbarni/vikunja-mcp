@@ -1,6 +1,7 @@
 import json
 
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from tests.fakes import FakeVikunjaClient
 from vikunja_mcp.config import Settings
@@ -57,3 +58,32 @@ def test_unknown_host_is_rejected(settings: Settings) -> None:
         response = client.post("/mcp", headers={**HEADERS, "Host": "evil.example"}, json=body)
 
     assert response.status_code == 421
+
+
+def secured(settings: Settings) -> TestClient:
+    token = SecretStr("s3cret")
+    return make_client(settings.model_copy(update={"mcp_auth_token": token}))
+
+
+def test_mcp_rejects_requests_without_the_token(settings: Settings) -> None:
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+
+    with secured(settings) as client:
+        response = client.post("/mcp", headers=HEADERS, json=body)
+
+    assert response.status_code == 401
+
+
+def test_mcp_accepts_requests_with_the_token(settings: Settings) -> None:
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+    headers = {**HEADERS, "Authorization": "Bearer s3cret"}
+
+    with secured(settings) as client:
+        response = client.post("/mcp", headers=headers, json=body)
+
+    assert response.status_code == 200
+
+
+def test_health_stays_open_when_a_token_is_set(settings: Settings) -> None:
+    with secured(settings) as client:
+        assert client.get("/health").status_code == 200

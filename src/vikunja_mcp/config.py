@@ -24,6 +24,14 @@ class Settings(BaseSettings):
         description="Host headers accepted on /mcp (DNS rebinding protection). "
         "Add your public domain, for example mcp.example.com. JSON list in the environment.",
     )
+    mcp_auth_token: SecretStr | None = None
+
+    @field_validator("mcp_auth_token")
+    @classmethod
+    def _blank_token_means_no_auth(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value().strip():
+            return None
+        return value
 
     @field_validator("vikunja_url")
     @classmethod

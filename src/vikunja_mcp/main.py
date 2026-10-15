@@ -6,8 +6,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.types import ASGIApp
 
 from vikunja_mcp import __version__, health
+from vikunja_mcp.auth import BearerTokenAuth
 from vikunja_mcp.config import Settings, get_settings
 from vikunja_mcp.logging_config import configure_logging
 from vikunja_mcp.mcp_server import build_mcp_server
@@ -34,6 +36,11 @@ def create_app(settings: Settings | None = None, client: VikunjaClient | None = 
             enable_dns_rebinding_protection=True, allowed_hosts=settings.allowed_hosts
         ),
     )
+    mcp_asgi: ASGIApp = mcp_app
+    if settings.mcp_auth_token is not None:
+        mcp_asgi = BearerTokenAuth(mcp_app, settings.mcp_auth_token.get_secret_value())
+    else:
+        logger.warning("MCP_AUTH_TOKEN is not set, /mcp is open to anyone who can reach it")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
@@ -47,5 +54,5 @@ def create_app(settings: Settings | None = None, client: VikunjaClient | None = 
     app.state.settings = settings
     app.state.vikunja = vikunja
     app.include_router(health.router)
-    app.mount("/", mcp_app)
+    app.mount("/", mcp_asgi)
     return app

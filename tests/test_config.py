@@ -125,3 +125,25 @@ def test_allowed_hosts_are_read_as_a_json_list(monkeypatch) -> None:
     settings = Settings(_env_file=None)
 
     assert settings.allowed_hosts == ["mcp.example.com"]
+
+
+def test_a_blank_mcp_auth_token_means_no_auth() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.test.url",
+        vikunja_api_token="example-test-token",
+        mcp_auth_token="   ",
+    )
+
+    assert settings.mcp_auth_token is None
+
+
+def test_mcp_auth_token_is_not_shown_in_repr() -> None:
+    settings = Settings(
+        _env_file=None,
+        vikunja_url="https://vikunja.test.url",
+        vikunja_api_token="example-test-token",
+        mcp_auth_token="s3cret",
+    )
+
+    assert "s3cret" not in repr(settings)
