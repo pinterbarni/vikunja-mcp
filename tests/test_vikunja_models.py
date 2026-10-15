@@ -55,7 +55,7 @@ def test_task_reads_known_fields_and_ignores_the_rest() -> None:
             "done": True,
             "priority": 3,
             "project_id": 1,
-            "labels": [{"id": 1}],
+            "labels": [{"id": 1, "title": "home"}],
             "created_by": {"id": 1},
         }
     )
@@ -79,3 +79,32 @@ def test_task_keeps_a_real_due_date() -> None:
     task = Task.model_validate({"id": 1, "title": "x", "due_date": "2026-10-20T10:00:00Z"})
 
     assert task.due_date == datetime(2026, 10, 20, 10, 0, tzinfo=UTC)
+
+
+def test_task_reads_labels_assignees_progress_and_dates() -> None:
+    task = Task.model_validate(
+        {
+            "id": 1,
+            "title": "x",
+            "labels": [{"id": 3, "title": "urgent", "hex_color": "ff0000"}],
+            "assignees": [{"id": 1, "username": "testuser", "name": ""}],
+            "percent_done": 0.5,
+            "start_date": "0001-01-01T00:00:00Z",
+            "end_date": "2026-10-25T10:00:00Z",
+            "created": "2026-10-13T20:49:17Z",
+        }
+    )
+
+    assert [label.title for label in task.labels] == ["urgent"]
+    assert [a.username for a in task.assignees] == ["testuser"]
+    assert task.percent_done == 0.5
+    assert task.start_date is None
+    assert task.end_date == datetime(2026, 10, 25, 10, 0, tzinfo=UTC)
+    assert task.created is not None
+
+
+def test_task_null_labels_and_assignees_become_empty_lists() -> None:
+    task = Task.model_validate({"id": 1, "title": "x", "labels": None, "assignees": None})
+
+    assert task.labels == []
+    assert task.assignees == []
