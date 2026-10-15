@@ -3,9 +3,6 @@ services:
     build: .
     image: vikunja-mcp
     restart: unless-stopped
-    ports:
-      # TODO: next commit change from local, add proxy
-      - "127.0.0.1:8000:8000"
     environment:
       VIKUNJA_URL: ${VIKUNJA_URL:?set VIKUNJA_URL in .env}
       VIKUNJA_API_TOKEN: ${VIKUNJA_API_TOKEN:?set VIKUNJA_API_TOKEN in .env}
@@ -20,3 +17,31 @@ services:
     security_opt:
       - no-new-privileges:true
     mem_limit: 256m
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      vikunja-mcp:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      MCP_DOMAIN: ${MCP_DOMAIN:?set MCP_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+
+volumes:
+  caddy_data:
+  caddy_config:
