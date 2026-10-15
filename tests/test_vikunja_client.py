@@ -1,3 +1,6 @@
+import json
+from datetime import UTC, datetime
+
 import httpx
 import pytest
 import respx
@@ -154,3 +157,39 @@ async def test_get_task_raises_an_api_error_when_it_is_missing(client: HttpxViku
         await client.get_task(99)
 
     assert excinfo.value.status_code == 404
+
+
+@respx.mock
+async def test_create_task_puts_to_the_project_and_returns_the_task(client) -> None:
+    route = respx.put(f"{BASE}/projects/3/tasks").mock(
+        return_value=httpx.Response(
+            201, json={"id": 77, "title": "Buy milk", "project_id": 3, "priority": 2}
+        )
+    )
+
+    task = await client.create_task(
+        3,
+        "Buy milk",
+        description="2 liters",
+        due_date=datetime(2026, 10, 20, tzinfo=UTC),
+        priority=2,
+    )
+
+    assert (task.id, task.title, task.project_id) == (77, "Buy milk", 3)
+    assert json.loads(route.calls.last.request.content) == {
+        "title": "Buy milk",
+        "description": "2 liters",
+        "due_date": "2026-10-20T00:00:00+00:00",
+        "priority": 2,
+    }
+
+
+@respx.mock
+async def test_create_task_leaves_out_the_due_date_when_there_is_none(client) -> None:
+    route = respx.put(f"{BASE}/projects/3/tasks").mock(
+        return_value=httpx.Response(201, json={"id": 78, "title": "Plain"})
+    )
+
+    await client.create_task(3, "Plain")
+
+    assert "due_date" not in json.loads(route.calls.last.request.content)

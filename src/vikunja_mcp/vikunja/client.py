@@ -1,6 +1,7 @@
 """Vikunja client, httpx implementation."""
 
-from typing import Protocol
+from datetime import datetime
+from typing import Any, Protocol
 
 import httpx
 
@@ -21,6 +22,15 @@ class VikunjaClient(Protocol):
     ) -> list[Task]: ...
 
     async def get_task(self, task_id: int) -> Task: ...
+
+    async def create_task(
+        self,
+        project_id: int,
+        title: str,
+        description: str = "",
+        due_date: datetime | None = None,
+        priority: int = 0,
+    ) -> Task: ...
 
     async def aclose(self) -> None: ...
 
@@ -49,15 +59,40 @@ class HttpxVikunjaClient:
     async def get_task(self, task_id: int) -> Task:
         return Task.model_validate(await self._get(f"/tasks/{task_id}"))
 
+    async def create_task(
+        self,
+        project_id: int,
+        title: str,
+        description: str = "",
+        due_date: datetime | None = None,
+        priority: int = 0,
+    ) -> Task:
+        body: dict[str, Any] = {"title": title, "description": description, "priority": priority}
+        if due_date is not None:
+            body["due_date"] = due_date.isoformat()
+        return Task.model_validate(
+            await self._request("PUT", f"/projects/{project_id}/tasks", json=body)
+        )
+
     async def get_info(self) -> ServerInfo:
         return ServerInfo.model_validate(await self._get("/info"))
 
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def _get(self, path: str, params: dict[str, str] | None = None):
+    async def _get(self, path: str, params: dict[str, str] | None = None) -> Any:
+        return await self._request("GET", path, params=params)
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, str] | None = None,
+        json: dict[str, Any] | None = None,
+    ) -> Any:
         try:
-            response = await self._http.get(path, params=params)
+            response = await self._http.request(method, path, params=params, json=json)
         except httpx.HTTPError as exc:
             raise VikunjaUnreachable(f"Could not reach Vikunja: {exc}") from exc
         if response.is_error:
