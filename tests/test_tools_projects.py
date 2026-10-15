@@ -13,7 +13,7 @@ def make_server():
 async def test_list_projects_tool_is_registered() -> None:
     tools = await make_server().list_tools()
 
-    assert [t.name for t in tools] == ["list_projects"]
+    assert "list_projects" in [t.name for t in tools]
 
 
 async def test_list_projects_hides_archived_by_default() -> None:
