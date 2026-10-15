@@ -70,8 +70,8 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
     async def list_tasks(
         project_id: int | None = None, include_done: bool = False
     ) -> list[TaskSummary]:
-        """List Vikunja tasks.
-
+        """
+        List Vikunja tasks.
         Only open tasks are returned, unless include_done is true.
         Pass project_id to limit the list to one project, use list_projects to find ids.
         due_date is null when a task has no due date.
@@ -91,8 +91,8 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
 
     @mcp.tool()
     async def get_task(task_id: int) -> TaskDetail:
-        """Get all details of one Vikunja task, including its description.
-
+        """
+        Get all details of one Vikunja task, including its description.
         Use list_tasks to find the task id.
         The description is HTML as written in Vikunja.
         Labels and assignees are returned as plain names.
@@ -107,8 +107,8 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         due_date: datetime | None = None,
         priority: int = 0,
     ) -> TaskDetail:
-        """Create a task. Without project_id it goes to the Inbox.
-
+        """
+        Create a task. Without project_id it goes to the Inbox.
         priority runs from 0 (none) to 5 (most urgent).
         due_date is an ISO 8601 date and time.
         """
@@ -127,8 +127,8 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         priority: int | None = None,
         done: bool | None = None,
     ) -> TaskDetail:
-        """Change a task. Only the fields you pass are changed, everything else stays.
-
+        """
+        Change a task. Only the fields you pass are changed, everything else stays.
         Use list_tasks to find the task id.
         Set done to true to complete a task, or to false to reopen it.
         priority runs from 0 (none) to 5 (most urgent).
@@ -141,3 +141,11 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         if clear_due_date:
             changes["due_date"] = NO_DATE
         return _to_detail(await client.update_task(task_id, changes))
+
+    @mcp.tool()
+    async def complete_task(task_id: int) -> TaskDetail:
+        """
+        Mark a task as done. Use list_tasks to find the task id.
+        To reopen a task, use update_task with done set to false.
+        """
+        return _to_detail(await client.update_task(task_id, {"done": True}))

@@ -143,3 +143,12 @@ async def test_update_task_can_clear_the_due_date() -> None:
     task = await update(fake, {"task_id": 1, "clear_due_date": True})
 
     assert task["due_date"] is None
+
+
+async def test_complete_task_marks_the_task_done() -> None:
+    fake = FakeVikunjaClient(tasks=[Task(id=1, title="eat cake"), Task(id=2, title="buy milk")])
+
+    result = await build_mcp_server(fake).call_tool("complete_task", {"task_id": 1})
+
+    assert result.structured_content["done"] is True
+    assert [t.done for t in fake.tasks] == [True, False]
