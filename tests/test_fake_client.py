@@ -1,7 +1,7 @@
 import pytest
 
 from tests.fakes import FakeVikunjaClient
-from vikunja_mcp.vikunja.errors import VikunjaUnreachable
+from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
 from vikunja_mcp.vikunja.models import Project, Task
 
 
@@ -33,3 +33,18 @@ async def test_fake_lists_open_tasks_and_can_limit_to_a_project() -> None:
     assert [t.id for t in await fake.list_tasks()] == [1, 2]
     assert [t.id for t in await fake.list_tasks(project_id=2)] == [2]
     assert [t.id for t in await fake.list_tasks(project_id=2, include_done=True)] == [2, 3]
+
+
+async def test_fake_returns_a_task_by_id() -> None:
+    fake = FakeVikunjaClient(tasks=[Task(id=1, title="a"), Task(id=2, title="b")])
+
+    assert (await fake.get_task(2)).title == "b"
+
+
+async def test_fake_raises_a_404_for_an_unknown_task() -> None:
+    fake = FakeVikunjaClient()
+
+    with pytest.raises(VikunjaAPIError) as excinfo:
+        await fake.get_task(99)
+
+    assert excinfo.value.status_code == 404
