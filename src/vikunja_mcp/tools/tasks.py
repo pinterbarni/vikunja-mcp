@@ -1,6 +1,7 @@
 """Task tools."""
 
 from datetime import datetime
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel
@@ -33,6 +34,9 @@ class TaskDetail(BaseModel):
     updated: datetime | None
     labels: list[str]
     assignees: list[str]
+
+
+NO_DATE = "0001-01-01T00:00:00Z"
 
 
 def _to_detail(task: Task) -> TaskDetail:
@@ -112,3 +116,28 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
             project_id = await _inbox_id(client)
         task = await client.create_task(project_id, title, description, due_date, priority)
         return _to_detail(task)
+
+    @mcp.tool()
+    async def update_task(
+        task_id: int,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: datetime | None = None,
+        clear_due_date: bool = False,
+        priority: int | None = None,
+        done: bool | None = None,
+    ) -> TaskDetail:
+        """Change a task. Only the fields you pass are changed, everything else stays.
+
+        Use list_tasks to find the task id.
+        Set done to true to complete a task, or to false to reopen it.
+        priority runs from 0 (none) to 5 (most urgent).
+        due_date is an ISO 8601 date and time. Set clear_due_date to true to remove the due date.
+        """
+        given = {"title": title, "description": description, "priority": priority, "done": done}
+        changes: dict[str, Any] = {k: v for k, v in given.items() if v is not None}
+        if due_date is not None:
+            changes["due_date"] = due_date.isoformat()
+        if clear_due_date:
+            changes["due_date"] = NO_DATE
+        return _to_detail(await client.update_task(task_id, changes))
