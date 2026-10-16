@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from vikunja_mcp.well_known import build_router
+from vikunja_mcp.well_known import build_router, metadata_url
 
 ISSUER = "https://example.authkit.app"
 PUBLIC_URL = "https://mcp.example.com/mcp"
@@ -32,3 +32,10 @@ def test_metadata_is_also_served_under_the_resource_path():
 
     assert with_path.status_code == 200
     assert with_path.json() == plain.json()
+
+
+def test_metadata_url_follows_the_resource_path():
+    assert (
+        metadata_url("https://mcp.example.com/mcp")
+        == "https://mcp.example.com/.well-known/oauth-protected-resource/mcp"
+    )

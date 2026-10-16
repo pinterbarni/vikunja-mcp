@@ -7,6 +7,12 @@ from fastapi import APIRouter
 _PREFIX = "/.well-known/oauth-protected-resource"
 
 
+def metadata_url(public_url: str) -> str:
+    """Where clients find the metadata of this resource (RFC 9728, path variant)."""
+    parts = urlparse(public_url)
+    return f"{parts.scheme}://{parts.netloc}{_PREFIX}{parts.path.rstrip('/')}"
+
+
 def build_router(*, public_url: str, issuer: str) -> APIRouter:
     """Serve RFC 9728 protected resource metadata at the plain and the path variant."""
     document = {
