@@ -4,6 +4,11 @@ from pydantic import ValidationError
 from vikunja_mcp.config import Settings
 
 
+def make_settings(**overrides):
+    values = {"vikunja_url": "http://vikunja.test", "vikunja_api_token": "secret"}
+    return Settings(_env_file=None, **{**values, **overrides})
+
+
 def test_reads_values_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VIKUNJA_URL", "https://vikunja.example.com")
     monkeypatch.setenv("VIKUNJA_API_TOKEN", "secret-token")
@@ -147,3 +152,32 @@ def test_mcp_auth_token_is_not_shown_in_repr() -> None:
     )
 
     assert "s3cret" not in repr(settings)
+
+
+def test_oauth_is_off_by_default():
+    settings = make_settings()
+
+    assert settings.oauth_issuer is None
+    assert settings.public_url is None
+    assert settings.oauth_allowed_subjects == []
+
+
+def test_oauth_issuer_loses_its_trailing_slash():
+    settings = make_settings(
+        oauth_issuer="https://example.authkit.app/",
+        public_url="https://mcp.example.com/mcp",
+    )
+
+    assert settings.oauth_issuer == "https://example.authkit.app"
+
+
+def test_blank_oauth_values_count_as_not_set():
+    settings = make_settings(oauth_issuer="", public_url="")
+
+    assert settings.oauth_issuer is None
+    assert settings.public_url is None
+
+
+def test_oauth_issuer_needs_a_public_url():
+    with pytest.raises(ValidationError):
+        make_settings(oauth_issuer="https://example.authkit.app")

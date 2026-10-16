@@ -1,8 +1,9 @@
 """Application settings, read from environment variables."""
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _API_SUFFIX = "/api/v1"
@@ -25,6 +26,9 @@ class Settings(BaseSettings):
         "Add your public domain, for example mcp.example.com. JSON list in the environment.",
     )
     mcp_auth_token: SecretStr | None = None
+    oauth_issuer: str | None = None
+    public_url: str | None = None
+    oauth_allowed_subjects: list[str] = []
 
     @field_validator("mcp_auth_token")
     @classmethod
@@ -32,6 +36,24 @@ class Settings(BaseSettings):
         if value is not None and not value.get_secret_value().strip():
             return None
         return value
+
+    @field_validator("oauth_issuer", "public_url", mode="before")
+    @classmethod
+    def _blank_to_none(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        return value.strip()
+
+    @field_validator("oauth_issuer")
+    @classmethod
+    def _strip_trailing_slash(cls, value: str | None) -> str | None:
+        return value.rstrip("/") if value else value
+
+    @model_validator(mode="after")
+    def _oauth_needs_public_url(self) -> Self:
+        if self.oauth_issuer and not self.public_url:
+            raise ValueError("PUBLIC_URL is required when OAUTH_ISSUER is set")
+        return self
 
     @field_validator("vikunja_url")
     @classmethod
