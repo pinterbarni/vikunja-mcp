@@ -1,5 +1,6 @@
 {$MCP_DOMAIN} {
-	handle /mcp* {
+	@public path /mcp* /.well-known/oauth-protected-resource*
+	handle @public {
 		reverse_proxy vikunja-mcp:8000
 	}
 
