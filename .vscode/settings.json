@@ -72,7 +72,8 @@
     "urllib",
     "urlopen",
     "PYTHONUNBUFFERED",
-    "tmpfs"
+    "tmpfs",
+    "getent"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
 }
