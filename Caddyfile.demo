@@ -1,0 +1,13 @@
+{$MCP_DOMAIN} {
+	handle /mcp* {
+		reverse_proxy vikunja-mcp:8000
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}
+
+{$DEMO_VIKUNJA_DOMAIN} {
+	reverse_proxy vikunja-demo:3456
+}

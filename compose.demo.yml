@@ -1,0 +1,30 @@
+# Demo stack: a throwaway Vikunja with fake data, used with the base file:
+#   docker compose -f compose.yml -f compose.demo.yml up -d
+# Set VIKUNJA_URL=http://vikunja-demo:3456 in .env, MCP server uses it.
+services:
+  vikunja-demo:
+    image: vikunja/vikunja:2.7.0
+    restart: unless-stopped
+    environment:
+      VIKUNJA_SERVICE_PUBLICURL: https://${DEMO_VIKUNJA_DOMAIN:?set DEMO_VIKUNJA_DOMAIN in .env}/
+      VIKUNJA_SERVICE_SECRET: ${DEMO_VIKUNJA_SECRET:?set DEMO_VIKUNJA_SECRET in .env}
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: "false"
+      VIKUNJA_DATABASE_TYPE: sqlite
+      VIKUNJA_DATABASE_PATH: /app/vikunja/files/vikunja.db
+    volumes:
+      - ./data/vikunja:/app/vikunja/files
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+
+  vikunja-mcp:
+    depends_on:
+      - vikunja-demo
+
+  caddy:
+    environment:
+      DEMO_VIKUNJA_DOMAIN: ${DEMO_VIKUNJA_DOMAIN:?set DEMO_VIKUNJA_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile.demo:/etc/caddy/Caddyfile:ro
