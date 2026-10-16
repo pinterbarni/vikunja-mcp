@@ -55,7 +55,8 @@ class OAuthAuth:
         try:
             # The key lookup is a blocking network call on a cold cache.
             claims = await asyncio.to_thread(self._verifier.verify, token)
-        except InvalidToken:
+        except InvalidToken as error:
+            logger.warning("Rejected an access token: %s", error)
             return 401
         subject = claims["sub"]
         if subject not in self._allowed_subjects:

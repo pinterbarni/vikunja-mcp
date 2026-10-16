@@ -118,3 +118,11 @@ def test_forbidden_subject_is_logged_without_the_token(caplog):
 
     assert SOMEONE_ELSE in caplog.text
     assert "other-jwt" not in caplog.text
+
+
+def test_reason_for_an_invalid_token_is_logged_without_the_token(caplog):
+    with caplog.at_level(logging.WARNING):
+        make_client().get("/mcp", headers=bearer("bad-jwt"))
+
+    assert "not a valid token" in caplog.text
+    assert "bad-jwt" not in caplog.text
