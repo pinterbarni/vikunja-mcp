@@ -9,6 +9,9 @@ services:
       MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN in .env}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:?set ALLOWED_HOSTS in .env}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OAUTH_ISSUER: ${OAUTH_ISSUER:-}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      OAUTH_ALLOWED_SUBJECTS: ${OAUTH_ALLOWED_SUBJECTS:-[]}
     read_only: true
     tmpfs:
       - /tmp
