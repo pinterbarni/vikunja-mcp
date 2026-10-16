@@ -6,7 +6,7 @@ Work in progress.
 
 ## Status
 
-The server runs, answers `/health`, and exposes six tools for projects and tasks over MCP streamable HTTP, with readable error messages and optional shared-secret auth on `/mcp`. Docker deployment comes next.
+The server runs in Docker behind Caddy with automatic HTTPS. `/mcp` is protected by `MCP_AUTH_TOKEN`, and six tools for projects and tasks are exposed over MCP streamable HTTP, with readable error messages. CI/CD, OAuth for the Claude website, pagination, comments and labels come next.
 
 Set `MCP_AUTH_TOKEN` before you expose the server beyond localhost, and serve it over HTTPS because the token travels in a header.
 
@@ -46,18 +46,31 @@ curl localhost:8000/health
 
 `/health` always returns 200. `status` is `ok` when Vikunja is reachable (with `vikunja_version`), or `degraded` when it is not.
 
+## Deploy
+
+The image is built from the `Dockerfile` in two stages: the first installs the locked dependencies, the second keeps only the virtual environment and runs as a non-root user. No secrets go into the image.
+
+`compose.yml` runs the server and Caddy. Only ports 80 and 443 are published, by Caddy. The server container publishes nothing and is reachable only through Caddy.
+
+All secrets live in a `.env` on the server, never in the repo.
+
+The full guide, including the demo stack, is in [docs/deployment.md](docs/deployment.md).
+
 ## Configuration
 
 Settings are environment variables, or entries in a local `.env` file.
 
-| Variable                  | Required | Default                          | Purpose                                                                                                                                                                                                                     |
-| ------------------------- | -------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VIKUNJA_URL`             | yes      | none                             | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted.                                                                                                                                               |
-| `VIKUNJA_API_TOKEN`       | yes      | none                             | API token used for every Vikunja request. Never logged.                                                                                                                                                                     |
-| `VIKUNJA_TIMEOUT_SECONDS` | no       | `10`                             | Seconds to wait for Vikunja before giving up. Must be greater than zero.                                                                                                                                                    |
-| `LOG_LEVEL`               | no       | `INFO`                           | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                                                                                                                                                                     |
-| `ALLOWED_HOSTS`           | no       | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying.                                                                                                                                     |
-| `MCP_AUTH_TOKEN`          | no       | none                             | Shared secret for `/mcp`. Requests need the header `Authorization: Bearer <token>`, otherwise they get 401. If unset, `/mcp` is open and the server logs a warning at startup. A blank value counts as unset. Never logged. |
+| Variable                  | Required                | Default                          | Purpose                                                                                                                                                                                                                     |
+| ------------------------- | ----------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VIKUNJA_URL`             | yes                     | none                             | Base URL of your Vikunja instance. A trailing slash or `/api/v1` is accepted.                                                                                                                                               |
+| `VIKUNJA_API_TOKEN`       | yes                     | none                             | API token used for every Vikunja request. Never logged.                                                                                                                                                                     |
+| `VIKUNJA_TIMEOUT_SECONDS` | no                      | `10`                             | Seconds to wait for Vikunja before giving up. Must be greater than zero.                                                                                                                                                    |
+| `LOG_LEVEL`               | no                      | `INFO`                           | Logging level: DEBUG, INFO, WARNING, ERROR or CRITICAL.                                                                                                                                                                     |
+| `ALLOWED_HOSTS`           | no                      | `["localhost:*", "127.0.0.1:*"]` | Host headers accepted on `/mcp`, as a JSON list. Add your public domain when deploying.                                                                                                                                     |
+| `MCP_AUTH_TOKEN`          | no                      | none                             | Shared secret for `/mcp`. Requests need the header `Authorization: Bearer <token>`, otherwise they get 401. If unset, `/mcp` is open and the server logs a warning at startup. A blank value counts as unset. Never logged. |
+| `MCP_DOMAIN`              | `compose.yml` only      | none                             | Public domain Caddy serves, for example `mcp.example.com`. Its DNS A record must point to the server.                                                                                                                       |
+| `DEMO_VIKUNJA_DOMAIN`     | `compose.demo.yml` only | none                             | Public domain of the demo Vikunja web UI, for example `vikunja-demo.example.com`.                                                                                                                                           |
+| `DEMO_VIKUNJA_SECRET`     | `compose.demo.yml` only | none                             | Secret the demo Vikunja signs its sessions with. Create one with `openssl rand -hex 32`.                                                                                                                                    |
 
 To create a token, run `openssl rand -hex 32` and put the result into `.env` as `MCP_AUTH_TOKEN`. `/health` stays open even when the token is set.
 
@@ -94,19 +107,28 @@ claude mcp add --transport http vikunja http://localhost:8000/mcp --header "Auth
 
 The header can be left out when `MCP_AUTH_TOKEN` is not set.
 
+Add a deployed server the same way, with its public HTTPS address:
+
+```bash
+claude mcp add --transport http vikunja https://mcp.example.com/mcp --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
+```
+
+> **Two different tokens.** The Vikunja API token is only for the server: it lives in the server's `.env` as `VIKUNJA_API_TOKEN` and never goes into a client. `MCP_AUTH_TOKEN` is the key clients send in the `Authorization` header. Mixing them up gives a 401. (Talking out of experience here :D.)
+
 Or try the tools in the MCP Inspector (needs Node):
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
-Cloud clients like the Claude web app need a public HTTPS address, that comes with the deployment milestone.
+The Claude website cannot use this server yet, because its connectors need OAuth. OAuth is on the roadmap.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    C[MCP client] --> A[FastAPI app]
+    C[MCP client] --> P[Caddy, HTTPS]
+    P -->|"/mcp only"| A[FastAPI app]
     A --> H["/health"]
     A --> B[Bearer token check]
     B --> M["/mcp"]
@@ -117,7 +139,7 @@ flowchart LR
     X --> V[Vikunja REST API]
 ```
 
-`/health` is not behind the token check.
+Caddy terminates HTTPS and forwards only `/mcp` to the app, so `/health` is not reachable from outside. Inside the stack `/health` is not behind the token check and serves the Docker health check.
 
 Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(settings, client)` accepts both, so tests never touch the network.
 
@@ -216,6 +238,13 @@ src/vikunja_mcp/   the package
   tools/           MCP tools and their error handling
   vikunja/         Vikunja client, models, errors
 tests/             tests, run with pytest
+docs/              deployment guide
+Dockerfile         two stage image build, runs as non-root
+.dockerignore      keeps secrets, caches and tests out of the image
+compose.yml        server plus Caddy for production
+compose.demo.yml   adds a throwaway demo Vikunja
+Caddyfile          HTTPS, forwards only /mcp to the server
+Caddyfile.demo     same, plus the demo Vikunja web UI
 compose.dev.yml    local Vikunja for manual testing
 Makefile           check, fix and single checks
 pyproject.toml     project metadata and tool settings
@@ -224,8 +253,14 @@ pyproject.toml     project metadata and tool settings
 ## Roadmap
 
 - Milestone 2 (done): task tools, readable errors, shared-secret auth on `/mcp`
-- Milestone 3: Docker and VPS deployment
-- Later: pagination, retries, comments, labels, JWT validation
+- Milestone 3 (done): Docker, HTTPS with Caddy, deploy
+- Next: demo seed script
+- Next: CI that runs `make check`
+- Next: CD with an image from a registry
+- Next: OAuth with a hosted identity provider, so the Claude website can connect
+- Next: pagination beyond 50 results
+- Next: comments and labels as tools
+- Later: retries, semantic search
 
 ## Docs
 
