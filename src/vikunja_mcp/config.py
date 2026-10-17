@@ -6,22 +6,30 @@ from typing import Self
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_API_SUFFIX = "/api/v1"
-_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-_LOCAL_HOSTS = ["localhost:*", "127.0.0.1:*"]
+from vikunja_mcp.constants import (
+    API_SUFFIX,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_TIMEOUT_SECONDS,
+    ENV_FILE,
+    ENV_FILE_ENCODING,
+    LOCAL_HOSTS,
+    LOG_LEVELS,
+)
 
 
 class Settings(BaseSettings):
     """Configuration for the server, read from environment variables or a local .env file."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE, env_file_encoding=ENV_FILE_ENCODING, extra="ignore"
+    )
 
     vikunja_url: str
     vikunja_api_token: SecretStr
-    vikunja_timeout_seconds: float = Field(default=10.0, gt=0)
-    log_level: str = "INFO"
+    vikunja_timeout_seconds: float = Field(default=DEFAULT_TIMEOUT_SECONDS, gt=0)
+    log_level: str = DEFAULT_LOG_LEVEL
     allowed_hosts: list[str] = Field(
-        default_factory=lambda: list(_LOCAL_HOSTS),
+        default_factory=lambda: list(LOCAL_HOSTS),
         description="Host headers accepted on /mcp (DNS rebinding protection). "
         "Add your public domain, for example mcp.example.com. JSON list in the environment.",
     )
@@ -60,8 +68,8 @@ class Settings(BaseSettings):
     def _normalise_url(cls, value: str) -> str:
         """Accept the URL with or without a trailing slash or the /api/v1 suffix."""
         value = value.strip().rstrip("/")
-        if value.endswith(_API_SUFFIX):
-            value = value.removesuffix(_API_SUFFIX)
+        if value.endswith(API_SUFFIX):
+            value = value.removesuffix(API_SUFFIX)
         if not value.startswith(("http://", "https://")):
             raise ValueError("must start with http:// or https://")
         return value
@@ -69,15 +77,15 @@ class Settings(BaseSettings):
     @field_validator("log_level")
     @classmethod
     def _normalise_log_level(cls, value: str) -> str:
-        """Accept any casing of value, reject names that are not real log levels defined by us."""
+        """Accept any casing, reject names that are not real log levels."""
         value = value.strip().upper()
-        if value not in _LOG_LEVELS:
-            raise ValueError(f"must be one of {sorted(_LOG_LEVELS)}")
+        if value not in LOG_LEVELS:
+            raise ValueError(f"must be one of {sorted(LOG_LEVELS)}")
         return value
 
     @property
     def vikunja_api_base_url(self) -> str:
-        return f"{self.vikunja_url}{_API_SUFFIX}"
+        return f"{self.vikunja_url}{API_SUFFIX}"
 
 
 @lru_cache
