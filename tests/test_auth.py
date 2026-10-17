@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from vikunja_mcp.auth import BearerTokenAuth
+from vikunja_mcp.auth.static_token import BearerTokenAuth
 
 
 def make_client() -> TestClient:

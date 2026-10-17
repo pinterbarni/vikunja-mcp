@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from vikunja_mcp.well_known import build_router, metadata_url
+from vikunja_mcp.auth.metadata import build_router, metadata_url
 
 ISSUER = "https://example.authkit.app"
 PUBLIC_URL = "https://mcp.example.com/mcp"

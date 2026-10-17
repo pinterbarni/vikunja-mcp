@@ -5,8 +5,8 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
+from vikunja_mcp.auth.factory import secure_mcp
 from vikunja_mcp.config import Settings
-from vikunja_mcp.security import secure_mcp
 
 ISSUER = "https://example.authkit.app"
 PUBLIC_URL = "https://mcp.example.com/mcp"

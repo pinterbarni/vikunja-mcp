@@ -4,7 +4,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from vikunja_mcp.oauth import InvalidToken, TokenVerifier
+from vikunja_mcp.auth.jwt_verifier import InvalidToken, TokenVerifier
 
 ISSUER = "https://example.authkit.app"
 AUDIENCE = "https://mcp.example.com/mcp"

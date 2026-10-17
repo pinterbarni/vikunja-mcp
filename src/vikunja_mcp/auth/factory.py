@@ -4,11 +4,11 @@ import logging
 
 from starlette.types import ASGIApp
 
-from vikunja_mcp.auth import BearerTokenAuth
+from vikunja_mcp.auth.jwt_verifier import TokenVerifier, jwks_key_resolver
+from vikunja_mcp.auth.metadata import metadata_url
+from vikunja_mcp.auth.middleware import OAuthAuth
+from vikunja_mcp.auth.static_token import BearerTokenAuth
 from vikunja_mcp.config import Settings
-from vikunja_mcp.oauth import TokenVerifier, jwks_key_resolver
-from vikunja_mcp.oauth_auth import OAuthAuth
-from vikunja_mcp.well_known import metadata_url
 
 logger = logging.getLogger(__name__)
 

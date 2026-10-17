@@ -10,7 +10,7 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from vikunja_mcp.oauth import InvalidToken
+from vikunja_mcp.auth.jwt_verifier import InvalidToken
 
 logger = logging.getLogger(__name__)
 

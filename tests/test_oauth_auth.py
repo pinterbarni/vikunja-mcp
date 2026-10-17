@@ -6,8 +6,8 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from vikunja_mcp.oauth import InvalidToken
-from vikunja_mcp.oauth_auth import OAuthAuth
+from vikunja_mcp.auth.jwt_verifier import InvalidToken
+from vikunja_mcp.auth.middleware import OAuthAuth
 
 METADATA_URL = "https://mcp.example.com/.well-known/oauth-protected-resource"
 ME = "user_01ABC"
