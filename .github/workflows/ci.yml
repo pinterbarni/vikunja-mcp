@@ -12,7 +12,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
@@ -22,7 +22,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the image
         run: docker build -t vikunja-mcp:ci .
       - name: Check that the installed package imports
@@ -41,7 +41,7 @@ jobs:
       DEMO_VIKUNJA_DOMAIN: vikunja.example.com
       DEMO_VIKUNJA_SECRET: dummy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate the production compose file
         run: docker compose -f compose.yml config --quiet
       - name: Validate the demo compose stack
@@ -60,7 +60,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
