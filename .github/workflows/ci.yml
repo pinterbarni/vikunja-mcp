@@ -29,3 +29,30 @@ jobs:
         run: >
           docker run --rm --entrypoint python vikunja-mcp:ci
           -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
+
+  config:
+    runs-on: ubuntu-latest
+    env:
+      VIKUNJA_URL: http://vikunja.example.com
+      VIKUNJA_API_TOKEN: dummy
+      MCP_AUTH_TOKEN: dummy
+      ALLOWED_HOSTS: '["mcp.example.com"]'
+      MCP_DOMAIN: mcp.example.com
+      DEMO_VIKUNJA_DOMAIN: vikunja.example.com
+      DEMO_VIKUNJA_SECRET: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the production compose file
+        run: docker compose -f compose.yml config --quiet
+      - name: Validate the demo compose stack
+        run: docker compose -f compose.yml -f compose.demo.yml config --quiet
+      - name: Validate the Caddyfile
+        run: >
+          docker run --rm -e MCP_DOMAIN
+          -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro"
+          caddy:2 caddy validate --config /etc/caddy/Caddyfile
+      - name: Validate the demo Caddyfile
+        run: >
+          docker run --rm -e MCP_DOMAIN -e DEMO_VIKUNJA_DOMAIN
+          -v "$PWD/Caddyfile.demo:/etc/caddy/Caddyfile:ro"
+          caddy:2 caddy validate --config /etc/caddy/Caddyfile
