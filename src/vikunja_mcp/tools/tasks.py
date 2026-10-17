@@ -7,6 +7,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel
 
+from vikunja_mcp.constants import INBOX_PROJECT_NAME, NO_DATE
 from vikunja_mcp.tools.errors import friendly_errors
 from vikunja_mcp.vikunja.client import VikunjaClient
 from vikunja_mcp.vikunja.models import Task
@@ -38,7 +39,15 @@ class TaskDetail(BaseModel):
     assignees: list[str]
 
 
-NO_DATE = "0001-01-01T00:00:00Z"
+def _to_summary(task: Task) -> TaskSummary:
+    return TaskSummary(
+        id=task.id,
+        title=task.title,
+        done=task.done,
+        priority=task.priority,
+        project_id=task.project_id,
+        due_date=task.due_date,
+    )
 
 
 def _to_detail(task: Task) -> TaskDetail:
@@ -62,7 +71,7 @@ def _to_detail(task: Task) -> TaskDetail:
 
 async def _inbox_id(client: VikunjaClient) -> int:
     for project in await client.list_projects():
-        if project.title.lower() == "inbox":
+        if project.title.lower() == INBOX_PROJECT_NAME:
             return project.id
     raise ToolError("No project named Inbox was found. Pass a project_id (see list_projects).")
 
@@ -80,17 +89,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         due_date is null when a task has no due date.
         """
         tasks = await client.list_tasks(project_id=project_id, include_done=include_done)
-        return [
-            TaskSummary(
-                id=t.id,
-                title=t.title,
-                done=t.done,
-                priority=t.priority,
-                project_id=t.project_id,
-                due_date=t.due_date,
-            )
-            for t in tasks
-        ]
+        return [_to_summary(task) for task in tasks]
 
     @mcp.tool()
     @friendly_errors
