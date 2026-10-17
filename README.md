@@ -10,7 +10,7 @@ Work in progress.
 
 ## Status
 
-The server runs in Docker behind Caddy with automatic HTTPS. Six tools for projects and tasks are exposed over MCP streamable HTTP, with readable error messages. The LLM website can connect with an OAuth login through a hosted identity provider (WorkOS AuthKit), and the static `MCP_AUTH_TOKEN` still works for Claude Code and scripts. CI/CD, pagination, comments and labels come next.
+The server runs in Docker behind Caddy with automatic HTTPS. Six tools for projects and tasks are exposed over MCP streamable HTTP, with readable error messages. The LLM website can connect with an OAuth login through a hosted identity provider (WorkOS AuthKit), and the static `MCP_AUTH_TOKEN` still works for Claude Code and scripts. CI runs on every push to main and on every pull request. CD, pagination, comments and labels come next.
 
 Set `MCP_AUTH_TOKEN` before you expose the server beyond localhost, and serve it over HTTPS because the token travels in a header.
 
@@ -89,11 +89,11 @@ Requests to `/mcp` with a host not in `ALLOWED_HOSTS` get `421 Invalid Host head
 
 The server picks the protection from the settings: OAuth plus the static token when `OAUTH_ISSUER` and `PUBLIC_URL` are set, only the static token when just `MCP_AUTH_TOKEN` is set, and no protection when neither is set.
 
-### Static token (LLM website and scripts)
+### Static token (Claude Code and scripts)
 
 The client sends `MCP_AUTH_TOKEN` in the `Authorization: Bearer` header. It works in both modes and is the simple choice for Claude Code, curl and scripts.
 
-### OAuth (LLM website)
+### OAuth (Claude website)
 
 The Claude website cannot send a fixed header, so it logs in instead. It reads the public metadata at `/.well-known/oauth-protected-resource`, sends you to the identity provider to log in, and then sends the access token it got there. The server checks the token signature with the provider's public keys, then the issuer, the audience (`PUBLIC_URL`) and the expiry.
 
@@ -174,23 +174,45 @@ With OAuth on, the client finds the identity provider in the metadata, logs in t
 
 Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(settings, client)` accepts both, so tests never touch the network.
 
+## Conventions
+
+Every tool feature is a folder under `tools/` with the same files: `tools.py` holds the `register` function that adds the tools to the server, `models.py` the outputs, `mappers.py` the conversion from Vikunja models, and `__init__.py` exports only `register`.
+
+`tests/test_tools_structure.py` checks this for every feature: the package exports only `register`, and `tools.py` has it.
+
+Fixed values live in `constants.py`. Values a user can change live in `config.py` as settings.
+
 ## Development
 
 ### Before you commit ✨
 
-Run all checks (tests, lint, format check, spelling):
+Run all checks: tests with coverage, ruff lint, ruff format check and codespell. This is the same gate CI runs:
 
 ```bash
 make check
 ```
 
-Auto-fix lint and formatting issues first if needed:
+Repair what can be fixed automatically (lint and formatting), then run all checks again:
 
 ```bash
 make fix
 ```
 
 Single checks: `make test`, `make lint`, `make format`, `make spell`.
+
+### Quality gates
+
+Coverage must stay at or above 95 percent, otherwise `make test` fails.
+
+Pre-commit hooks run ruff and codespell on every commit. Install them once:
+
+```bash
+uv run pre-commit install
+```
+
+CI has four jobs: `check` runs `make check`, `docker` builds the image and imports the package in it, `config` validates the compose files and Caddyfiles, and `secrets` scans the git history for committed secrets.
+
+Dependabot opens weekly update pull requests for the Python dependencies, GitHub Actions and Docker images.
 
 ---
 
@@ -218,7 +240,7 @@ Format the code:
 uv run ruff format .
 ```
 
-Check formatting without changing any file (this is what CI will run):
+Check formatting without changing any file (this is what CI runs):
 
 ```bash
 uv run ruff format --check .
@@ -260,29 +282,49 @@ async def test_example(client):
 ## Project layout
 
 ```bash
-src/vikunja_mcp/   the package
-  main.py          create_app, the app factory
-  config.py        settings from env / .env
-  auth.py          static bearer token check for /mcp
-  oauth.py         JWT verifier for OAuth access tokens
-  oauth_auth.py    OAuth middleware for /mcp, with the allowlist
-  security.py      chooses the protection for /mcp from the settings
-  well_known.py    protected resource metadata for OAuth clients
-  health.py        /health endpoint
-  mcp_server.py    MCP server, registers the tools
-  tools/           MCP tools and their error handling
-  vikunja/         Vikunja client, models, errors
-tests/             tests, run with pytest
-docs/              deployment guide
-Dockerfile         two stage image build, runs as non-root
-.dockerignore      keeps secrets, caches and tests out of the image
-compose.yml        server plus Caddy for production
-compose.demo.yml   adds a throwaway demo Vikunja
-Caddyfile          HTTPS, forwards only /mcp and the OAuth metadata
-Caddyfile.demo     same, plus the demo Vikunja web UI
-compose.dev.yml    local Vikunja for manual testing
-Makefile           check, fix and single checks
-pyproject.toml     project metadata and tool settings
+src/vikunja_mcp/          the package
+  main.py                 create_app, the app factory
+  config.py               user settings from env / .env
+  constants.py            fixed values used across the server
+  logging_config.py       key/value log format
+  health.py               /health endpoint
+  mcp_server.py           MCP server, registers each tool feature
+  auth/                   protection for /mcp
+    factory.py            chooses the protection from the settings
+    static_token.py       static bearer token check
+    jwt_verifier.py       checks OAuth access tokens (JWT)
+    middleware.py         OAuth check for /mcp, with the allowlist
+    metadata.py           protected resource metadata for OAuth clients
+  tools/                  MCP tools, one folder per feature
+    errors.py             turns Vikunja errors into readable messages
+    projects/             project tools
+      __init__.py         exports only register
+      tools.py            register, adds the tools to the server
+      models.py           what the tools return
+      mappers.py          Vikunja models to tool outputs
+    tasks/                task tools
+      __init__.py         exports only register
+      tools.py            register, adds the tools to the server
+      models.py           what the tools return
+      mappers.py          Vikunja models to tool outputs
+      inbox.py            finds the Inbox project
+  vikunja/                Vikunja integration
+    client.py             VikunjaClient interface and httpx implementation
+    errors.py             Vikunja error types
+    models.py             Vikunja API models
+tests/                    tests, run with pytest
+docs/                     deployment guide
+.github/                  CI workflow and dependabot settings
+Dockerfile                two stage image build, runs as non-root
+.dockerignore             keeps secrets, caches and tests out of the image
+compose.yml               server plus Caddy for production
+compose.demo.yml          adds a throwaway demo Vikunja
+compose.dev.yml           local Vikunja for manual testing
+Caddyfile                 HTTPS, forwards only /mcp and the OAuth metadata
+Caddyfile.demo            same, plus the demo Vikunja web UI
+Makefile                  check, fix and single checks
+.pre-commit-config.yaml   ruff and codespell hooks
+pyproject.toml            project metadata and tool settings
 ```
 
 ## Roadmap
@@ -290,11 +332,14 @@ pyproject.toml     project metadata and tool settings
 - Milestone 2 (done): task tools, readable errors, shared-secret auth on `/mcp`
 - Milestone 3 (done): Docker, HTTPS with Caddy, deploy
 - Milestone 4 (done): OAuth with a hosted identity provider, so the Claude website can connect
+- Done: CI that runs `make check`, builds the image, validates the config and scans for secrets
+- Done: MIT license
+- Done: tools split into one folder per feature
 - Next: demo seed script
-- Next: CI that runs `make check`
 - Next: CD with an image from a registry
 - Next: pagination beyond 50 results
 - Next: comments and labels as tools
+- Next: documentation site with MkDocs
 - Later: retries, semantic search
 
 ## Docs

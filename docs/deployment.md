@@ -172,7 +172,7 @@ tar czf vikunja-backup-$(date +%F).tar.gz data/vikunja
 
 **401 from a client.** Wrong token: usually the Vikunja token instead of `MCP_AUTH_TOKEN`, or a stale value. Check with `grep MCP_AUTH_TOKEN .env` and add the client again.
 
-**401 with a `www-authenticate` header in a browser or curl.** Normal without a token. It tells OAuth clients where to find the metadata.
+**401 with a `www-authenticate` header on a curl test without a token.** This is normal. It tells OAuth clients where to find the metadata.
 
 **403 from the Claude website.** The token is valid, but the user id is not in `OAUTH_ALLOWED_SUBJECTS`.
 
