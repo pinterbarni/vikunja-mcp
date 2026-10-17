@@ -73,7 +73,11 @@
     "urlopen",
     "PYTHONUNBUFFERED",
     "tmpfs",
-    "getent"
+    "pyjwt",
+    "getent",
+    "Pintér",
+    "Barnabás"
   ],
-  "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"]
+  "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"],
+  "python.terminal.useEnvFile": true
 }

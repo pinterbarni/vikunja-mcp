@@ -6,7 +6,7 @@ Work in progress.
 
 ## Status
 
-The server runs in Docker behind Caddy with automatic HTTPS. `/mcp` is protected by `MCP_AUTH_TOKEN`, and six tools for projects and tasks are exposed over MCP streamable HTTP, with readable error messages. CI/CD, OAuth for the Claude website, pagination, comments and labels come next.
+The server runs in Docker behind Caddy with automatic HTTPS. Six tools for projects and tasks are exposed over MCP streamable HTTP, with readable error messages. The LLM website can connect with an OAuth login through a hosted identity provider (WorkOS AuthKit), and the static `MCP_AUTH_TOKEN` still works for Claude Code and scripts. CI/CD, pagination, comments and labels come next.
 
 Set `MCP_AUTH_TOKEN` before you expose the server beyond localhost, and serve it over HTTPS because the token travels in a header.
 
@@ -71,12 +71,31 @@ Settings are environment variables, or entries in a local `.env` file.
 | `MCP_DOMAIN`              | `compose.yml` only      | none                             | Public domain Caddy serves, for example `mcp.example.com`. Its DNS A record must point to the server.                                                                                                                       |
 | `DEMO_VIKUNJA_DOMAIN`     | `compose.demo.yml` only | none                             | Public domain of the demo Vikunja web UI, for example `vikunja-demo.example.com`.                                                                                                                                           |
 | `DEMO_VIKUNJA_SECRET`     | `compose.demo.yml` only | none                             | Secret the demo Vikunja signs its sessions with. Create one with `openssl rand -hex 32`.                                                                                                                                    |
+| `OAUTH_ISSUER`            | no                      | none                             | Address of the identity provider, for example `https://your-name.authkit.app`. Turns OAuth on together with `PUBLIC_URL`.                                                                                                   |
+| `PUBLIC_URL`              | with `OAUTH_ISSUER`     | none                             | Full public address of the MCP endpoint, ending in `/mcp`, for example `https://mcp.example.com/mcp`. Also the audience checked in every token, so it must match the Resource Indicator in the identity provider exactly.   |
+| `OAUTH_ALLOWED_SUBJECTS`  | no                      | `[]`                             | User ids allowed in with OAuth, as a JSON list. Empty means nobody.                                                                                                                                                         |
 
 To create a token, run `openssl rand -hex 32` and put the result into `.env` as `MCP_AUTH_TOKEN`. `/health` stays open even when the token is set.
 
 The server does not start if a required variable is missing or invalid.
 
 Requests to `/mcp` with a host not in `ALLOWED_HOSTS` get `421 Invalid Host header`.
+
+## How access works
+
+The server picks the protection from the settings: OAuth plus the static token when `OAUTH_ISSUER` and `PUBLIC_URL` are set, only the static token when just `MCP_AUTH_TOKEN` is set, and no protection when neither is set.
+
+### Static token (LLM website and scripts)
+
+The client sends `MCP_AUTH_TOKEN` in the `Authorization: Bearer` header. It works in both modes and is the simple choice for Claude Code, curl and scripts.
+
+### OAuth (LLM website)
+
+The Claude website cannot send a fixed header, so it logs in instead. It reads the public metadata at `/.well-known/oauth-protected-resource`, sends you to the identity provider to log in, and then sends the access token it got there. The server checks the token signature with the provider's public keys, then the issuer, the audience (`PUBLIC_URL`) and the expiry.
+
+### Who may use it
+
+The login only proves who someone is. Anyone can sign up at the identity provider, so a valid login alone is not enough. `OAUTH_ALLOWED_SUBJECTS` decides who may use the tools: a valid token from a user id that is not on the list gets 403. An empty list lets nobody in with OAuth. The static token skips the allowlist.
 
 ## Tools
 
@@ -107,11 +126,13 @@ claude mcp add --transport http vikunja http://localhost:8000/mcp --header "Auth
 
 The header can be left out when `MCP_AUTH_TOKEN` is not set.
 
-Add a deployed server the same way, with its public HTTPS address:
+Add a deployed server the same way, with its public HTTPS address. Claude Code uses `MCP_AUTH_TOKEN`:
 
 ```bash
 claude mcp add --transport http vikunja https://mcp.example.com/mcp --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
+
+On the Claude website, open Settings, then Connectors, and add a custom connector. Paste the MCP URL, for example `https://mcp.example.com/mcp`, and log in. This needs the OAuth settings on the server. The first login is rejected until your user id is in `OAUTH_ALLOWED_SUBJECTS`, so reconnect after the allowlist is set. The [deployment guide](docs/deployment.md) has the full steps.
 
 > **Two different tokens.** The Vikunja API token is only for the server: it lives in the server's `.env` as `VIKUNJA_API_TOKEN` and never goes into a client. `MCP_AUTH_TOKEN` is the key clients send in the `Authorization` header. Mixing them up gives a 401. (Talking out of experience here :D.)
 
@@ -121,17 +142,21 @@ Or try the tools in the MCP Inspector (needs Node):
 npx @modelcontextprotocol/inspector
 ```
 
-The Claude website cannot use this server yet, because its connectors need OAuth. OAuth is on the roadmap.
-
 ## Architecture
 
 ```mermaid
 flowchart LR
-    C[MCP client] --> P[Caddy, HTTPS]
-    P -->|"/mcp only"| A[FastAPI app]
+    C[MCP client] -->|"login"| L[Identity provider]
+    L -->|"access token"| C
+    C -->|"bearer token"| P[Caddy, HTTPS]
+    P -->|"/mcp and /.well-known/oauth-protected-resource only"| A[FastAPI app]
     A --> H["/health"]
+    A --> W["/.well-known/oauth-protected-resource"]
     A --> B[Bearer token check]
-    B --> M["/mcp"]
+    B -->|"static token"| M["/mcp"]
+    B -->|"OAuth token"| O["OAuth check: signature, issuer, audience, allowlist"]
+    O -.->|"public keys"| L
+    O --> M
     M --> T[Tool layer]
     H --> I[VikunjaClient interface]
     T --> I
@@ -139,7 +164,9 @@ flowchart LR
     X --> V[Vikunja REST API]
 ```
 
-Caddy terminates HTTPS and forwards only `/mcp` to the app, so `/health` is not reachable from outside. Inside the stack `/health` is not behind the token check and serves the Docker health check.
+Caddy terminates HTTPS and forwards only `/mcp` and the `/.well-known/oauth-protected-resource` paths to the app, so `/health` is not reachable from outside. Inside the stack `/health` is not behind the token check and serves the Docker health check.
+
+With OAuth on, the client finds the identity provider in the metadata, logs in there, and sends the access token, which the server checks for signature, issuer, audience and allowlist before any tool runs.
 
 Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(settings, client)` accepts both, so tests never touch the network.
 
@@ -232,7 +259,11 @@ async def test_example(client):
 src/vikunja_mcp/   the package
   main.py          create_app, the app factory
   config.py        settings from env / .env
-  auth.py          bearer token check for /mcp
+  auth.py          static bearer token check for /mcp
+  oauth.py         JWT verifier for OAuth access tokens
+  oauth_auth.py    OAuth middleware for /mcp, with the allowlist
+  security.py      chooses the protection for /mcp from the settings
+  well_known.py    protected resource metadata for OAuth clients
   health.py        /health endpoint
   mcp_server.py    MCP server, registers the tools
   tools/           MCP tools and their error handling
@@ -243,7 +274,7 @@ Dockerfile         two stage image build, runs as non-root
 .dockerignore      keeps secrets, caches and tests out of the image
 compose.yml        server plus Caddy for production
 compose.demo.yml   adds a throwaway demo Vikunja
-Caddyfile          HTTPS, forwards only /mcp to the server
+Caddyfile          HTTPS, forwards only /mcp and the OAuth metadata
 Caddyfile.demo     same, plus the demo Vikunja web UI
 compose.dev.yml    local Vikunja for manual testing
 Makefile           check, fix and single checks
@@ -254,10 +285,10 @@ pyproject.toml     project metadata and tool settings
 
 - Milestone 2 (done): task tools, readable errors, shared-secret auth on `/mcp`
 - Milestone 3 (done): Docker, HTTPS with Caddy, deploy
+- Milestone 4 (done): OAuth with a hosted identity provider, so the Claude website can connect
 - Next: demo seed script
 - Next: CI that runs `make check`
 - Next: CD with an image from a registry
-- Next: OAuth with a hosted identity provider, so the Claude website can connect
 - Next: pagination beyond 50 results
 - Next: comments and labels as tools
 - Later: retries, semantic search
@@ -283,3 +314,7 @@ pyproject.toml     project metadata and tool settings
 
 - [Vikunja docs](https://vikunja.io/docs/): user and admin guides
 - [Vikunja API docs](https://vikunja.io/docs/api-documentation/): REST API reference, also served as Swagger on own instance at `/api/v1/docs`
+
+### License
+
+MIT, see [LICENSE](LICENSE).

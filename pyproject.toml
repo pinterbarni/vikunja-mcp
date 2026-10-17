@@ -2,6 +2,8 @@
 name = "vikunja-mcp"
 version = "0.1.0"
 description = "MCP server that exposes a self-hosted Vikunja instance as tools for MCP clients"
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 authors = [{ name = "Barnabas Pinter" }]
 requires-python = ">=3.12"
