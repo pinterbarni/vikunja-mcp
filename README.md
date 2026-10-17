@@ -1,5 +1,7 @@
 # vikunja-mcp
 
+![CI](https://github.com/pinterbarni/vikunja-mcp/actions/workflows/ci.yml/badge.svg)
+
 MCP server that exposes a self-hosted Vikunja instance as tools for MCP clients.
 
 Work in progress.
