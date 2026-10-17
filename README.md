@@ -1,6 +1,8 @@
 # vikunja-mcp
 
 ![CI](https://github.com/pinterbarni/vikunja-mcp/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/github/license/pinterbarni/vikunja-mcp)
+![Python](https://img.shields.io/badge/python-3.12-blue) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 MCP server that exposes a self-hosted Vikunja instance as tools for MCP clients.
 

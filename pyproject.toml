@@ -25,6 +25,7 @@ dev = [
     "codespell>=2.4.3",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "respx>=0.23.1",
     "ruff>=0.17.0",
 ]
@@ -43,3 +44,11 @@ select = ["E", "F", "I", "UP", "B", "ASYNC", "SIM"]
 [tool.codespell]
 skip = "uv.lock,.venv,.git"
 ignore-words-list = "pinter, codespell"
+
+[tool.coverage.run]
+source = ["src/vikunja_mcp"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

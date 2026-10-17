@@ -1,7 +1,7 @@
 .PHONY: test lint format spell check fix
 
 test:
-	uv run pytest
+	uv run pytest --cov
 
 lint:
 	uv run ruff check .
