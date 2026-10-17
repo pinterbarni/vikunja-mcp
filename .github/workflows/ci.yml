@@ -56,3 +56,13 @@ jobs:
           docker run --rm -e MCP_DOMAIN -e DEMO_VIKUNJA_DOMAIN
           -v "$PWD/Caddyfile.demo:/etc/caddy/Caddyfile:ro"
           caddy:2 caddy validate --config /etc/caddy/Caddyfile
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
