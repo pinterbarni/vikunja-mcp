@@ -1,79 +1,16 @@
-"""Task tools."""
+"""The MCP tools for tasks."""
 
 from datetime import datetime
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
-from pydantic import BaseModel
 
-from vikunja_mcp.constants import INBOX_PROJECT_NAME, NO_DATE
+from vikunja_mcp.constants import NO_DATE
 from vikunja_mcp.tools.errors import friendly_errors
+from vikunja_mcp.tools.tasks.inbox import inbox_id
+from vikunja_mcp.tools.tasks.mappers import to_detail, to_summary
+from vikunja_mcp.tools.tasks.models import TaskDetail, TaskSummary
 from vikunja_mcp.vikunja.client import VikunjaClient
-from vikunja_mcp.vikunja.models import Task
-
-
-class TaskSummary(BaseModel):
-    id: int
-    title: str
-    done: bool
-    priority: int
-    project_id: int
-    due_date: datetime | None
-
-
-class TaskDetail(BaseModel):
-    id: int
-    title: str
-    description: str
-    done: bool
-    priority: int
-    percent_done: float
-    project_id: int
-    due_date: datetime | None
-    start_date: datetime | None
-    end_date: datetime | None
-    created: datetime | None
-    updated: datetime | None
-    labels: list[str]
-    assignees: list[str]
-
-
-def _to_summary(task: Task) -> TaskSummary:
-    return TaskSummary(
-        id=task.id,
-        title=task.title,
-        done=task.done,
-        priority=task.priority,
-        project_id=task.project_id,
-        due_date=task.due_date,
-    )
-
-
-def _to_detail(task: Task) -> TaskDetail:
-    return TaskDetail(
-        id=task.id,
-        title=task.title,
-        description=task.description,
-        done=task.done,
-        priority=task.priority,
-        percent_done=task.percent_done,
-        project_id=task.project_id,
-        due_date=task.due_date,
-        start_date=task.start_date,
-        end_date=task.end_date,
-        created=task.created,
-        updated=task.updated,
-        labels=[label.title for label in task.labels],
-        assignees=[a.username for a in task.assignees],
-    )
-
-
-async def _inbox_id(client: VikunjaClient) -> int:
-    for project in await client.list_projects():
-        if project.title.lower() == INBOX_PROJECT_NAME:
-            return project.id
-    raise ToolError("No project named Inbox was found. Pass a project_id (see list_projects).")
 
 
 def register(mcp: MCPServer, client: VikunjaClient) -> None:
@@ -89,7 +26,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         due_date is null when a task has no due date.
         """
         tasks = await client.list_tasks(project_id=project_id, include_done=include_done)
-        return [_to_summary(task) for task in tasks]
+        return [to_summary(task) for task in tasks]
 
     @mcp.tool()
     @friendly_errors
@@ -100,7 +37,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         The description is HTML as written in Vikunja.
         Labels and assignees are returned as plain names.
         """
-        return _to_detail(await client.get_task(task_id))
+        return to_detail(await client.get_task(task_id))
 
     @mcp.tool()
     @friendly_errors
@@ -117,9 +54,9 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         due_date is an ISO 8601 date and time.
         """
         if project_id is None:
-            project_id = await _inbox_id(client)
+            project_id = await inbox_id(client)
         task = await client.create_task(project_id, title, description, due_date, priority)
-        return _to_detail(task)
+        return to_detail(task)
 
     @mcp.tool()
     @friendly_errors
@@ -145,7 +82,7 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
             changes["due_date"] = due_date.isoformat()
         if clear_due_date:
             changes["due_date"] = NO_DATE
-        return _to_detail(await client.update_task(task_id, changes))
+        return to_detail(await client.update_task(task_id, changes))
 
     @mcp.tool()
     @friendly_errors
@@ -154,4 +91,4 @@ def register(mcp: MCPServer, client: VikunjaClient) -> None:
         Mark a task as done. Use list_tasks to find the task id.
         To reopen a task, use update_task with done set to false.
         """
-        return _to_detail(await client.update_task(task_id, {"done": True}))
+        return to_detail(await client.update_task(task_id, {"done": True}))
