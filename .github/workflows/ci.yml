@@ -18,3 +18,14 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - run: make check
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t vikunja-mcp:ci .
+      - name: Check that the installed package imports
+        run: >
+          docker run --rm --entrypoint python vikunja-mcp:ci
+          -c "import vikunja_mcp; print(vikunja_mcp.__version__)"
