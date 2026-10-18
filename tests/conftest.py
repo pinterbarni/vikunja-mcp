@@ -1,6 +1,17 @@
 import pytest
 
-from vikunja_mcp.config import Settings
+from vikunja_mcp.config import Settings, get_settings
+
+
+@pytest.fixture(autouse=True)
+def clean_environment(monkeypatch, tmp_path):
+    """Every test starts without settings from the real environment or a local .env file."""
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name.upper(), raising=False)
+    monkeypatch.chdir(tmp_path)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

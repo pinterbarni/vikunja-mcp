@@ -76,7 +76,8 @@
     "pyjwt",
     "getent",
     "Pintér",
-    "Barnabás"
+    "Barnabás",
+    "autouse"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"],
   "python.terminal.useEnvFile": true
