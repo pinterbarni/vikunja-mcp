@@ -7,15 +7,20 @@ import httpx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
+from vikunja_mcp.vikunja.http import VikunjaHttp
 from vikunja_mcp.vikunja.models import Project, ServerInfo, Task
 
 
 class HttpxVikunjaClient:
     def __init__(self, settings: Settings) -> None:
-        self._http = httpx.AsyncClient(
-            base_url=settings.vikunja_api_base_url,
-            headers={"Authorization": f"Bearer {settings.vikunja_api_token.get_secret_value()}"},
-            timeout=settings.vikunja_timeout_seconds,
+        self._http = VikunjaHttp(
+            httpx.AsyncClient(
+                base_url=settings.vikunja_api_base_url,
+                headers={
+                    "Authorization": (f"Bearer {settings.vikunja_api_token.get_secret_value()}")
+                },
+                timeout=settings.vikunja_timeout_seconds,
+            )
         )
 
     async def list_projects(self, include_archived: bool = False) -> list[Project]:
@@ -46,12 +51,12 @@ class HttpxVikunjaClient:
         if due_date is not None:
             body["due_date"] = due_date.isoformat()
         return Task.model_validate(
-            await self._request("PUT", f"/projects/{project_id}/tasks", json=body)
+            await self._http.request("PUT", f"/projects/{project_id}/tasks", json=body)
         )
 
     async def update_task(self, task_id: int, changes: dict[str, Any]) -> Task:
         current = await self._get(f"/tasks/{task_id}")
-        updated = await self._request("POST", f"/tasks/{task_id}", json={**current, **changes})
+        updated = await self._http.request("POST", f"/tasks/{task_id}", json={**current, **changes})
         return Task.model_validate(updated)
 
     async def get_info(self) -> ServerInfo:
@@ -61,7 +66,7 @@ class HttpxVikunjaClient:
         await self._http.aclose()
 
     async def _get(self, path: str, params: dict[str, str] | None = None) -> Any:
-        return await self._request("GET", path, params=params)
+        return await self._http.request("GET", path, params=params)
 
     async def _request(
         self,
