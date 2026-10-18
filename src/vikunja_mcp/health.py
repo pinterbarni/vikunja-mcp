@@ -7,8 +7,8 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from vikunja_mcp import __version__
-from vikunja_mcp.vikunja.client import VikunjaClient
 from vikunja_mcp.vikunja.errors import VikunjaError
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 logger = logging.getLogger(__name__)
 

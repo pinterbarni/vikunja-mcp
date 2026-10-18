@@ -13,7 +13,8 @@ from vikunja_mcp.auth.metadata import build_router
 from vikunja_mcp.config import Settings, get_settings
 from vikunja_mcp.logging_config import configure_logging
 from vikunja_mcp.mcp_server import build_mcp_server
-from vikunja_mcp.vikunja.client import HttpxVikunjaClient, VikunjaClient
+from vikunja_mcp.vikunja.client import HttpxVikunjaClient
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 logger = logging.getLogger(__name__)
 

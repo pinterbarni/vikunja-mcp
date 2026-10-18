@@ -10,7 +10,7 @@ from vikunja_mcp.tools.errors import friendly_errors
 from vikunja_mcp.tools.tasks.inbox import inbox_id
 from vikunja_mcp.tools.tasks.mappers import to_detail, to_summary
 from vikunja_mcp.tools.tasks.models import TaskDetail, TaskSummary
-from vikunja_mcp.vikunja.client import VikunjaClient
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 
 def register(mcp: MCPServer, client: VikunjaClient) -> None:

@@ -3,7 +3,7 @@
 from mcp.server.mcpserver.exceptions import ToolError
 
 from vikunja_mcp.constants import INBOX_PROJECT_NAME
-from vikunja_mcp.vikunja.client import VikunjaClient
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 
 async def inbox_id(client: VikunjaClient) -> int:

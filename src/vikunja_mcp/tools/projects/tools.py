@@ -5,7 +5,7 @@ from mcp.server.mcpserver import MCPServer
 from vikunja_mcp.tools.errors import friendly_errors
 from vikunja_mcp.tools.projects.mappers import to_summary
 from vikunja_mcp.tools.projects.models import ProjectSummary
-from vikunja_mcp.vikunja.client import VikunjaClient
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 
 def register(mcp: MCPServer, client: VikunjaClient) -> None:

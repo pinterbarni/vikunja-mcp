@@ -1,40 +1,13 @@
 """Vikunja client, httpx implementation."""
 
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any
 
 import httpx
 
 from vikunja_mcp.config import Settings
 from vikunja_mcp.vikunja.errors import VikunjaAPIError, VikunjaUnreachable
 from vikunja_mcp.vikunja.models import Project, ServerInfo, Task
-
-
-class VikunjaClient(Protocol):
-    """What the app needs from Vikunja - depend on this, not on httpx."""
-
-    async def get_info(self) -> ServerInfo: ...
-
-    async def list_projects(self, include_archived: bool = False) -> list[Project]: ...
-
-    async def list_tasks(
-        self, project_id: int | None = None, include_done: bool = False
-    ) -> list[Task]: ...
-
-    async def get_task(self, task_id: int) -> Task: ...
-
-    async def create_task(
-        self,
-        project_id: int,
-        title: str,
-        description: str = "",
-        due_date: datetime | None = None,
-        priority: int = 0,
-    ) -> Task: ...
-
-    async def update_task(self, task_id: int, changes: dict[str, Any]) -> Task: ...
-
-    async def aclose(self) -> None: ...
 
 
 class HttpxVikunjaClient:

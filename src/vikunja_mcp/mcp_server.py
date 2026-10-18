@@ -3,7 +3,7 @@
 from mcp.server.mcpserver import MCPServer
 
 from vikunja_mcp.tools import projects, tasks
-from vikunja_mcp.vikunja.client import VikunjaClient
+from vikunja_mcp.vikunja.protocol import VikunjaClient
 
 
 def build_mcp_server(client: VikunjaClient) -> MCPServer:
