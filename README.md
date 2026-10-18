@@ -178,7 +178,9 @@ Tools depend on the `VikunjaClient` interface, not on httpx. `create_app(setting
 
 Every tool feature is a folder under `tools/` with the same files: `tools.py` holds the `register` function that adds the tools to the server, `models.py` the outputs, `mappers.py` the conversion from Vikunja models, and `__init__.py` exports only `register`.
 
-`tests/test_tools_structure.py` checks this for every feature: the package exports only `register`, and `tools.py` has it.
+`tests/tools/test_structure.py` checks this for every feature: the package exports only `register`, and `tools.py` has it.
+
+Tests live in folders that mirror the source: `tests/app`, `tests/auth`, `tests/tools` and `tests/vikunja`. Every test starts with a clean environment (a fixture in `tests/conftest.py`), so a local `.env` or a shell variable cannot change a result.
 
 Fixed values live in `constants.py`. Values a user can change live in `config.py` as settings.
 
@@ -212,39 +214,7 @@ uv run pre-commit install
 
 CI has four jobs: `check` runs `make check`, `docker` builds the image and imports the package in it, `config` validates the compose files and Caddyfiles, and `secrets` scans the git history for committed secrets.
 
-Dependabot opens weekly update pull requests for the Python dependencies, GitHub Actions and Docker images.
-
----
-
-Run the tests:
-
-```bash
-uv run pytest
-```
-
-Check the code for problems (unused imports, bugs, style):
-
-```bash
-uv run ruff check .
-```
-
-Fix the problems ruff can fix on its own:
-
-```bash
-uv run ruff check . --fix
-```
-
-Format the code:
-
-```bash
-uv run ruff format .
-```
-
-Check formatting without changing any file (this is what CI runs):
-
-```bash
-uv run ruff format --check .
-```
+Dependabot opens weekly update pull requests for the Python dependencies (grouped into one), GitHub Actions and Docker images. The Python base image stays on 3.12.
 
 ### Local Vikunja
 
@@ -309,12 +279,16 @@ src/vikunja_mcp/          the package
       mappers.py          Vikunja models to tool outputs
       inbox.py            finds the Inbox project
   vikunja/                Vikunja integration
-    client.py             VikunjaClient interface and httpx implementation
+    protocol.py           VikunjaClient interface
+    client.py             httpx implementation of the interface
     errors.py             Vikunja error types
     models.py             Vikunja API models
-tests/                    tests, run with pytest
+tests/                    tests, in folders that mirror src
+  conftest.py             clean environment for every test
+  fakes.py                in-memory Vikunja client for tool tests
 docs/                     deployment guide
 .github/                  CI workflow and dependabot settings
+LICENSE                   MIT license
 Dockerfile                two stage image build, runs as non-root
 .dockerignore             keeps secrets, caches and tests out of the image
 compose.yml               server plus Caddy for production
@@ -333,8 +307,9 @@ pyproject.toml            project metadata and tool settings
 - Milestone 3 (done): Docker, HTTPS with Caddy, deploy
 - Milestone 4 (done): OAuth with a hosted identity provider, so the Claude website can connect
 - Done: CI that runs `make check`, builds the image, validates the config and scans for secrets
-- Done: MIT license
-- Done: tools split into one folder per feature
+- Done: MIT license, coverage minimum, pre-commit hooks and weekly Dependabot updates
+- Done: tools split into one folder per feature, tests in matching folders with a clean environment
+- Next: split the Vikunja client into smaller files
 - Next: demo seed script
 - Next: CD with an image from a registry
 - Next: pagination beyond 50 results

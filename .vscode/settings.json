@@ -77,7 +77,8 @@
     "getent",
     "Pintér",
     "Barnabás",
-    "autouse"
+    "autouse",
+    "conftest"
   ],
   "cSpell.ignorePaths": [".venv/**", "uv.lock", ".git/**"],
   "python.terminal.useEnvFile": true
